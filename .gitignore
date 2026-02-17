@@ -1,0 +1,14 @@
+# Ignore dataset and test folders
+dataset/
+test/
+
+# Ignore virtual environment
+venv/
+
+# Ignore python cache
+__pycache__/
+*.pyc
+__pycache__/
+*.pyc
+*.h5
+*.keras
