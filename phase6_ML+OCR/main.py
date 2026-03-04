@@ -1,83 +1,83 @@
 import os
+import sys
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-import tensorflow as tf
-tf.get_logger().setLevel("ERROR")
-import cv2
-import re
-from ocr_module import extract_text_with_ocr
-from ml_module import predict_ingredient
-# Change image here
-image_path = "phase6_ML+OCR/input/test2vegetable.jpg"
-img = cv2.imread(image_path)
-if img is None:
-    print("Image not found!")
-    exit()
-text = extract_text_with_ocr(image_path)
-final_list = []
-# ---------------- PACKAGED DETECTION ----------------
-packaged_keywords = [
-    "ingredients", "nutrition", "net wt", "manufactured",
-    "mrp", "best before", "expiry", "contains"
-]
-is_packaged = False
-for kw in packaged_keywords:
-    if kw.lower() in text.lower():
-        is_packaged = True
-        break
-# ---------------- PACKAGED ----------------
-if is_packaged:
-    print("PACKAGED ITEM DETECTED")
 
-    ingredient_line = None
-    for line in text.split("\n"):
-        if "ingredients" in line.lower():
-            ingredient_line = line.strip()
-            break
+from ocr_module import extract_text_with_ocr, extract_ingredients_from_text
+from ml_module  import predict_ingredient
 
-    if ingredient_line is None:
-        ingredient_line = "Ingredients not found"
 
-    ingredient_line = re.sub(r"[^a-zA-Z0-9(),:% ]", "", ingredient_line)
+# ── Smart Combiner ────────────────────────────────────────────────────────────
 
-    final_list = [ingredient_line]
-    print("FINAL OUTPUT LIST =", final_list)
+def process_image(image_path: str) -> dict:
+    """
+    Smart routing:
+      1. Run OCR first — if meaningful text found → OCR route
+      2. Else run CNN  — if confidence >= 95%     → ML route
+      3. Else          → not recognized
+    """
 
-    # Text on image (BLACK)
-    cv2.putText(img, "PACKAGED (OCR)", (20, 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 0), 2)
+    if not os.path.exists(image_path):
+        return {
+            "status": "error",
+            "route": None,
+            "result": None,
+            "message": f"File not found: {image_path}"
+        }
 
-    cv2.putText(img, ingredient_line[:60], (20, 90),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
+    # ── Step 1: Try OCR ───────────────────────────────────────────────────────
+    ocr_result = extract_text_with_ocr(image_path)
 
-# ---------------- RAW ----------------
-else:
-    print("RAW INGREDIENT DETECTED")
+    if ocr_result["status"] == "success" and ocr_result["is_text_image"]:
+        ingredients = extract_ingredients_from_text(ocr_result["text"])
+        return {
+            "status": "success",
+            "route": "OCR",
+            "result": {
+                "text": ocr_result["text"],
+                "ingredients": ingredients
+            },
+            "message": "Text image detected — OCR used"
+        }
 
-    pred, conf = predict_ingredient(image_path)
+    # ── Step 2: Try CNN ───────────────────────────────────────────────────────
+    ml_result = predict_ingredient(image_path)
 
-    # Confidence threshold
-    if conf < 0.60:
-        pred = "Unknown"
+    if ml_result["status"] == "success":
+        return {
+            "status": "success",
+            "route": "ML",
+            "result": {
+                "ingredient": ml_result["ingredient"],
+                "confidence": ml_result["confidence"]
+            },
+            "message": f"Vegetable detected — ML used ({ml_result['confidence']}% confidence)"
+        }
 
-    final_list = [pred]
+    # ── Step 3: Not recognized ────────────────────────────────────────────────
+    return {
+        "status": "not_recognized",
+        "route": None,
+        "result": None,
+        "message": "Image not recognized — not a vegetable or text image"
+    }
 
-    print("FINAL OUTPUT LIST =", final_list)
-    print("CONFIDENCE =", round(conf * 100, 2), "%")
 
-    label = f"{pred} ({round(conf*100,2)}%)"
+# ── CLI test ──────────────────────────────────────────────────────────────────
 
-    # Text on image (BLACK)
-    cv2.putText(img, "RAW (ML)", (20, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 0),2)
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage:   python main.py <image_path>")
+        print("Example: python main.py input/tomato.jpg")
+        sys.exit(1)
 
-    cv2.putText(img, label, (20, 60),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 0),2)
+    image_path = sys.argv[1]
+    print(f"\nProcessing: {image_path}")
+    print("-" * 40)
 
-# Show final image
-img_show = cv2.resize(img, (900, 600))
-cv2.imshow("FINAL RESULT", img_show)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    result = process_image(image_path)
+
+    print(f"Status  : {result['status']}")
+    print(f"Route   : {result['route']}")
+    print(f"Message : {result['message']}")
+    print(f"Result  : {result['result']}")

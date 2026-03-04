@@ -1,47 +1,111 @@
+import os
+import sys
+
 import cv2
+import numpy as np
 import pytesseract
 
-img = cv2.imread(r"P:\INFOSYS PROJECT\phase5_OCR\input\coffe.jpg")
 
-if img is None:
-    print("ERROR: Image not found. Check path.")
-    exit()
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-img_show = cv2.resize(img, (900, 600))
 
-# ROI selection (drag and select)
-roi_box = cv2.selectROI("Select ROI", img_show, showCrosshair=True)
-cv2.destroyAllWindows()
+# ── Preprocessing ─────────────────────────────────────────────────────────────
 
-x, y, w, h = roi_box
-if w == 0 or h == 0:
-    print("ROI not selected!")
-    exit()
+def preprocess_image(img: np.ndarray) -> np.ndarray:
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    blurred = cv2.GaussianBlur(gray, (0, 0), 3)
+    sharp = cv2.addWeighted(gray, 1.5, blurred, -0.5, 0)
+    thresh = cv2.adaptiveThreshold(
+        sharp, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY, 31, 10,
+    )
+    return thresh
 
-roi = img_show[y:y+h, x:x+w]
 
-# Upscale + Sharpen + Adaptive Threshold
-gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+# ── Core OCR ──────────────────────────────────────────────────────────────────
 
-sharp = cv2.addWeighted(gray, 1.5, cv2.GaussianBlur(gray, (0, 0), 3), -0.5, 0)
+def _run_ocr(processed_img: np.ndarray) -> str:
+    config = r"--oem 3 --psm 6"
+    text = pytesseract.image_to_string(processed_img, config=config)
+    return text.strip()
 
-thresh = cv2.adaptiveThreshold(
-    sharp, 255,
-    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    cv2.THRESH_BINARY, 31, 10
-)
 
-# OCR
-config = r'--oem 3 --psm 6'
-text = pytesseract.image_to_string(thresh, config=config)
+# ── From file path ────────────────────────────────────────────────────────────
 
-print("----- OCR OUTPUT -----")
-print(text)
+def extract_text_from_path(image_path: str) -> dict:
+    if not os.path.exists(image_path):
+        return {"status": "error", "text": "", "message": f"File not found: {image_path}"}
 
-# Show only preprocessing result (debug)
-cv2.imshow("Sharpen", sharp)
-cv2.imshow("Adaptive Threshold", thresh)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    img = cv2.imread(image_path)
+    if img is None:
+        return {"status": "error", "text": "", "message": f"Could not read image: {image_path}"}
 
+    processed = preprocess_image(img)
+    text = _run_ocr(processed)
+    return {"status": "success", "text": text, "message": "OCR completed successfully"}
+
+
+# ── From uploaded bytes ───────────────────────────────────────────────────────
+
+def extract_text_from_bytes(image_bytes: bytes) -> dict:
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    if img is None:
+        return {"status": "error", "text": "", "message": "Could not decode image bytes."}
+
+    processed = preprocess_image(img)
+    text = _run_ocr(processed)
+    return {"status": "success", "text": text, "message": "OCR completed successfully"}
+
+
+# ── Ingredient parser ─────────────────────────────────────────────────────────
+
+def extract_ingredients_from_text(raw_text: str) -> list:
+    stop_words = {
+        "the", "and", "with", "for", "from", "this", "that",
+        "ingredients", "recipe", "contains", "made", "per",
+        "serving", "amount", "total", "daily", "value",
+    }
+
+    words = raw_text.lower().replace(",", " ").replace(";", " ").split()
+    ingredients = []
+
+    for word in words:
+        word = word.strip(".:()-*•/\\")
+        if len(word) < 3:
+            continue
+        if word in stop_words:
+            continue
+        if word.replace(".", "").replace("%", "").isnumeric():
+            continue
+        if word not in ingredients:
+            ingredients.append(word)
+
+    return ingredients
+
+
+# ── Standalone CLI test ───────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage:   python ocr_service.py <image_path>")
+        print("Example: python ocr_service.py input/label.jpg")
+        sys.exit(1)
+
+    path = sys.argv[1]
+    print(f"\nProcessing: {path}")
+    print("-" * 40)
+
+    result = extract_text_from_path(path)
+    print(f"Status  : {result['status']}")
+    print(f"Message : {result['message']}")
+    print(f"\nExtracted Text:\n{result['text']}")
+
+    if result["status"] == "success" and result["text"]:
+        ingredients = extract_ingredients_from_text(result["text"])
+        print(f"\nPossible Ingredients Found:")
+        for item in ingredients:
+            print(f"  - {item}")

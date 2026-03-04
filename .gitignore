@@ -1,14 +1,29 @@
-# Ignore dataset and test folders
-dataset/
-test/
-
-# Ignore virtual environment
+# python
 venv/
+__pycache__/
+*.pyc
 
-# Ignore python cache
-__pycache__/
-*.pyc
-__pycache__/
-*.pyc
-*.h5
-*.keras
+# node
+node_modules/
+dist/
+
+# datasets
+dataset/
+dataset_recipe/
+uploads/
+
+# database
+*.db
+
+# images
+*.jpg
+*.png
+
+# archives
+*.zip
+reference/
+# env
+.env
+test/
+check_*.py
+download_images.py
