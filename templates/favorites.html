@@ -1,0 +1,85 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>My Favorites</title>
+</head>
+<body>
+
+<h2>❤️ My Favorite Recipes</h2>
+
+<a href="{% url 'dashboard' %}">⬅ Back to Dashboard</a>
+
+<hr>
+
+{% for fav in favorites %}
+    <div style="margin-bottom:20px;">
+        <h3>{{ fav.recipe.name }}</h3>
+        <p>{{ fav.recipe.description }}</p>
+        <hr>
+    </div>
+{% empty %}
+    <p>No favorites added yet.</p>
+{% endfor %}
+
+</body>
+</html> -->
+<!-- --------------------------------------------------------------------------------->
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Favorites</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .recipe-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .remove-btn {
+            background-color: red;
+            color: white;
+            padding: 6px 12px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .remove-btn:hover {
+            background-color: darkred;
+        }
+    </style>
+</head>
+<body>
+
+<h2>❤️ My Favorite Recipes</h2>
+
+<a href="{% url 'dashboard' %}">⬅ Back to Dashboard</a>
+
+<hr>
+
+{% for fav in favorites %}
+    <div class="recipe-card">
+        <h3>{{ fav.recipe.name }}</h3>
+        <p>{{ fav.recipe.description }}</p>
+
+        <!-- REMOVE BUTTON -->
+        <a href="{% url 'remove_favorite' fav.recipe.id %}" class="remove-btn">
+            ❌ Remove
+        </a>
+    </div>
+{% empty %}
+    <p>No favorites added yet.</p>
+{% endfor %}
+
+</body>
+</html>

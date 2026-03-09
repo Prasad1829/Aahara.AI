@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="hero">
+    <div class="card glass pop">
+        <h1>Intelligent Recipe Generator</h1>
+        <p>Type ingredients (example: <b>brinjal onion tomato</b>) and get recipes with images.</p>
+
+        {% if user %}
+        <a class="btn big" href="{{ url_for('dashboard') }}">Go to Dashboard →</a>
+        {% else %}
+        <div class="row">
+            <a class="btn big" href="{{ url_for('login') }}">Login</a>
+            <a class="btn big btn-ghost" href="{{ url_for('register') }}">Register</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="hero-img floaty">
+        <img src="{{ url_for('static', filename='images/food.jpg') }}" alt="food" />
+    </div>
+</div>
+{% endblock %}
