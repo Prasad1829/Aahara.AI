@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="Vegetarian recipe placeholder">
+  <defs>
+    <linearGradient id="vegBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#vegBg)"/>
+  <circle cx="220" cy="130" r="180" fill="#ffffff" opacity="0.08"/>
+  <circle cx="1080" cy="620" r="220" fill="#ffffff" opacity="0.08"/>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" opacity="0.9">
+    <path d="M640 450c-70 0-130-50-145-118h290c-15 68-75 118-145 118z" stroke-width="16"/>
+    <path d="M530 332c15-42 56-72 110-72s95 30 110 72" stroke-width="16"/>
+    <path d="M640 258c-16-24-10-56 12-76 8 30 1 58-12 76z" stroke-width="12"/>
+    <path d="M612 272c-30-4-55-24-67-52 29-2 54 10 67 31" stroke-width="12"/>
+    <path d="M668 272c30-4 55-24 67-52-29-2-54 10-67 31" stroke-width="12"/>
+  </g>
+</svg>

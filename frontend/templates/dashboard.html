@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="sidebar-layout">
+    <aside class="sidebar-card p-4 sm:p-5 h-fit sticky top-24">
+        <h2 class="text-lg font-bold mb-3">Workspace</h2>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="sidebar-link active">Overview</a>
+            <a href="/upload" class="sidebar-link">Ingredient Detection</a>
+            <a href="/recipe-results" class="sidebar-link">Recipe Results</a>
+            <a href="/my-recipes" class="sidebar-link">Saved Recipes</a>
+            <a href="/profile" class="sidebar-link">Profile</a>
+        </nav>
+    </aside>
+
+    <div class="space-y-5">
+        <header class="dashboard-card fade-in p-5 sm:p-6">
+            <h1 class="text-3xl sm:text-4xl font-bold">Dashboard</h1>
+            <p class="text-slate-300 mt-2">Monitor recipe history, saved items, and your latest AI recommendations.</p>
+        </header>
+
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" id="dashboardStatsGrid">
+            <article class="dashboard-card fade-in p-5">
+                <p class="text-sm text-slate-400">Recipes Suggested</p>
+                <p id="statTotalRecipes" class="text-3xl font-bold mt-1">0</p>
+            </article>
+            <article class="dashboard-card fade-in p-5">
+                <p class="text-sm text-slate-400">Saved Recipes</p>
+                <p id="statSavedRecipes" class="text-3xl font-bold mt-1">0</p>
+            </article>
+            <article class="dashboard-card fade-in p-5">
+                <p class="text-sm text-slate-400">Tried Recipes</p>
+                <p id="statTriedRecipes" class="text-3xl font-bold mt-1">0</p>
+            </article>
+            <article class="dashboard-card fade-in p-5">
+                <p class="text-sm text-slate-400">Favorites</p>
+                <p id="statFavorites" class="text-3xl font-bold mt-1">0</p>
+            </article>
+        </section>
+
+        <section class="grid gap-5 xl:grid-cols-2">
+            <article class="dashboard-card fade-in p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-xl font-bold">Search History</h2>
+                    <a href="/recipe-results" class="btn-ghost">Open Results</a>
+                </div>
+                <div id="historyRecipes" class="mt-4 grid gap-3">
+                    <div class="empty-state">No history yet. Run ingredient detection first.</div>
+                </div>
+            </article>
+
+            <article class="dashboard-card fade-in p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-xl font-bold">Saved Recipes</h2>
+                    <a href="/saved" class="btn-ghost">View Saved</a>
+                </div>
+                <div id="savedRecipes" class="mt-4 grid gap-3">
+                    <div class="empty-state">No saved recipes yet.</div>
+                </div>
+            </article>
+        </section>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const historyContainer = document.getElementById('historyRecipes');
+    const savedContainer = document.getElementById('savedRecipes');
+
+    function parseList(value) {
+        if (Array.isArray(value)) return value;
+        if (!value) return [];
+        return String(value).split(',').map((x) => x.trim()).filter(Boolean);
+    }
+
+    function rowCard(recipe) {
+        const name = recipe?.name || recipe?.recipe_name || `Recipe ${recipe?.id || ''}`;
+        const ingredients = parseList(recipe?.ingredients).slice(0, 3);
+        const image = window.getRecipeImageUrl(recipe);
+        const fallback = window.getFallbackRecipeImage(recipe);
+
+        return `
+            <a href="/recipe-details?id=${encodeURIComponent(recipe?.id || '')}" class="panel-card p-3 flex items-center gap-3 hover:border-indigo-400/40 transition-colors">
+                <img src="${image}" data-fallback-image="${fallback}" onerror="window.withRecipeImageFallback && window.withRecipeImageFallback(event)" class="h-14 w-14 rounded-lg object-cover" alt="${name}">
+                <div class="min-w-0">
+                    <p class="font-semibold truncate">${name}</p>
+                    <p class="text-xs text-slate-400 truncate">${ingredients.length ? ingredients.join(', ') : 'Ingredients unavailable'}</p>
+                </div>
+            </a>
+        `;
+    }
+
+    async function loadDashboardData() {
+        try {
+            const response = await window.apiFetch('/api/dashboard');
+            const data = await response.json();
+
+            if (response.status === 401) {
+                window.location.href = '/login?next=/dashboard';
+                return;
+            }
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || 'Failed to load dashboard data');
+            }
+
+            const stats = data.stats || {};
+            document.getElementById('statTotalRecipes').textContent = stats.total_recipes || 0;
+            document.getElementById('statSavedRecipes').textContent = stats.saved_count || 0;
+            document.getElementById('statTriedRecipes').textContent = stats.tried_count || 0;
+            document.getElementById('statFavorites').textContent = stats.favorite_count || 0;
+
+            const historyRows = Array.isArray(data.recent_recipes) ? data.recent_recipes : [];
+            historyContainer.innerHTML = historyRows.length
+                ? historyRows.slice(0, 6).map(rowCard).join('')
+                : '<div class="empty-state">No history yet. Run ingredient detection first.</div>';
+
+            const savedRows = Array.isArray(data.saved_recipes) ? data.saved_recipes : [];
+            savedContainer.innerHTML = savedRows.length
+                ? savedRows.slice(0, 6).map(rowCard).join('')
+                : '<div class="empty-state">No saved recipes yet.</div>';
+        } catch (error) {
+            window.showToast(error.message || 'Dashboard load failed', 'error');
+        }
+    }
+
+    loadDashboardData();
+})();
+</script>
+{% endblock %}
