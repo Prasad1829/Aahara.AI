@@ -1,0 +1,17 @@
+[
+  {
+    "query_ingredients": ["egg", "tomato", "onion"],
+    "expected_ingredients": ["egg", "tomato", "onion"],
+    "expected_recipe_ids": []
+  },
+  {
+    "query_ingredients": ["potato", "chili", "onion"],
+    "expected_ingredients": ["potato", "onion"],
+    "expected_recipe_ids": []
+  },
+  {
+    "query_ingredients": ["flour", "cheese", "tomato"],
+    "expected_ingredients": ["flour", "cheese", "tomato"],
+    "expected_recipe_ids": []
+  }
+]

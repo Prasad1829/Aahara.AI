@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - RecipeAI{% endblock %}
+
+{% block content %}
+<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50 dark:from-slate-900 dark:to-slate-950">
+    <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-12 animate-fade-in-up">
+            <h1 class="text-4xl font-bold text-gradient mb-2">Get in Touch</h1>
+            <p class="text-gray-600 dark:text-gray-300">Have questions or feedback? We'd love to hear from you.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Form -->
+            <form id="contactForm" class="space-y-6 animate-fade-in-up">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Name</label>
+                    <input type="text" placeholder="Your name" required
+                           class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-800 focus:shadow-outline">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" placeholder="you@example.com" required
+                           class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-800 focus:shadow-outline">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Message</label>
+                    <textarea rows="6" placeholder="Your message" required
+                              class="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-800 focus:shadow-outline"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary w-full py-3 rounded-lg text-white font-semibold hover:shadow-lg transition-transform transform hover:scale-105">
+                    Send Message
+                </button>
+            </form>
+
+            <!-- Info Box -->
+            <div class="space-y-6 animate-fade-in-up" style="animation-delay: 200ms;">
+                <h2 class="text-2xl font-bold">Project Info</h2>
+                <p class="text-gray-700 dark:text-gray-300">
+                    <i class="fas fa-envelope mr-2 text-blue-500"></i>
+                    <a href="mailto:swapnilpanchal935@gmail.com" class="hover:underline">swapnilpanchal935@gmail.com</a>
+                </p>
+                <p class="text-gray-700 dark:text-gray-300"><i class="fas fa-code mr-2 text-green-500"></i>Infosys Virtual Internship</p>
+                <p class="text-gray-700 dark:text-gray-300"><i class="fas fa-microchip mr-2 text-purple-500"></i>AI + Flask + MySQL</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// simple contact form handling
+const contactForm = document.getElementById('contactForm');
+contactForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = contactForm.querySelector('input[type="text"]').value.trim();
+    const email = contactForm.querySelector('input[type="email"]').value.trim();
+    const message = contactForm.querySelector('textarea').value.trim();
+
+    const subject = encodeURIComponent(`Contact from RecipeAI - ${name || "Website User"}`);
+    const body = encodeURIComponent(
+        `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
+    );
+
+    window.location.href = `mailto:swapnilpanchal935@gmail.com?subject=${subject}&body=${body}`;
+    showToast('Opening your email app to send message', 'success');
+});
+</script>
+{% endblock %}
