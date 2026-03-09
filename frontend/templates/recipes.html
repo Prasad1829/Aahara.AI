@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}Recipe Results{% endblock %}
+
+{% block content %}
+<section>
+    <div class="panel-card p-5 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold">Recipe Results</h1>
+                <p id="resultsSubtitle" class="text-slate-300 mt-2">AI generated recommendations from your ingredients.</p>
+            </div>
+            <a href="/upload" class="btn-ghost">New Detection</a>
+        </div>
+
+        <div class="mt-5">
+            <p class="text-sm text-slate-400 mb-2">Detected Ingredients</p>
+            <div id="resultsIngredientChips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="mt-5 flex flex-wrap gap-2">
+            <button type="button" class="filter-pill active" data-filter="all">All</button>
+            <button type="button" class="filter-pill" data-filter="veg">Veg</button>
+            <button type="button" class="filter-pill" data-filter="non-veg">Non-Veg</button>
+            <button type="button" class="filter-pill" data-filter="quick">Quick</button>
+        </div>
+    </div>
+</section>
+
+<section class="mt-6">
+    <div id="recipesSkeleton" class="recipe-grid">
+        <div class="recipe-card skeleton h-72"></div>
+        <div class="recipe-card skeleton h-72"></div>
+        <div class="recipe-card skeleton h-72"></div>
+    </div>
+
+    <div id="recipeCardsGrid" class="recipe-grid hidden"></div>
+
+    <div id="recipesEmptyState" class="empty-state hidden mt-4">
+        <p class="text-base">No recipes found for this filter.</p>
+        <a href="/upload" class="btn-primary mt-3 inline-flex">Try another input</a>
+    </div>
+</section>
+
+<div id="recipeDetailModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+        <div class="flex items-center justify-between border-b border-slate-700 px-5 py-4 sticky top-0 bg-surface z-10">
+            <h2 id="modalRecipeName" class="text-xl font-bold"></h2>
+            <button id="closeRecipeModal" type="button" class="btn-ghost"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="p-5 sm:p-6 grid gap-5 lg:grid-cols-2">
+            <div>
+                <img id="modalRecipeImage" class="w-full h-64 object-cover rounded-xl" src="/static/images/recipe_placeholder_veg.svg" alt="Recipe">
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <span id="modalRecipeType" class="ingredient-chip">VEG</span>
+                    <span id="modalRecipeTime" class="ingredient-chip">20 min</span>
+                    <span id="modalRecipeDifficulty" class="ingredient-chip">Easy</span>
+                    <span id="modalRecipeMatch" class="ingredient-chip">0%</span>
+                </div>
+            </div>
+            <div>
+                <h3 class="font-semibold text-lg">Ingredients</h3>
+                <ul id="modalIngredients" class="mt-3 space-y-2 text-slate-200"></ul>
+            </div>
+        </div>
+        <div class="px-5 sm:px-6 pb-6">
+            <h3 class="font-semibold text-lg">Cooking Steps</h3>
+            <ol id="modalInstructions" class="mt-3 space-y-3"></ol>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.filter-pill {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 999px;
+    padding: 0.42rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: 0.2s ease;
+}
+
+.filter-pill:hover,
+.filter-pill.active {
+    color: #e0e7ff;
+    border-color: rgba(129, 140, 248, 0.55);
+    background: rgba(99, 102, 241, 0.25);
+}
+
+.recipe-image-wrap {
+    position: relative;
+    height: 190px;
+    overflow: hidden;
+    border-radius: 12px;
+    margin-bottom: 0.85rem;
+}
+
+.recipe-image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.recipe-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.65rem;
+}
+
+.meta-pill {
+    font-size: 0.72rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.58rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    color: #cbd5e1;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(() => {
+    const cardsGrid = document.getElementById('recipeCardsGrid');
+    const chipsHost = document.getElementById('resultsIngredientChips');
+    const subtitle = document.getElementById('resultsSubtitle');
+    const emptyState = document.getElementById('recipesEmptyState');
+    const skeleton = document.getElementById('recipesSkeleton');
+
+    const modal = document.getElementById('recipeDetailModal');
+    const closeModalBtn = document.getElementById('closeRecipeModal');
+
+    let allRecipes = [];
+    let activeFilter = 'all';
+    const savedRecipeIds = new Set();
+
+    function parseList(value) {
+        if (Array.isArray(value)) return value.map((x) => String(x).trim()).filter(Boolean);
+        if (typeof value !== 'string') return [];
+        const raw = value.trim();
+        if (!raw) return [];
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.map((x) => String(x).trim()).filter(Boolean);
+        } catch (e) {}
+        return raw.split(/,|\n+/).map((x) => x.replace(/^[\[\]"']+|[\[\]"']+$/g, '').trim()).filter(Boolean);
+    }
+
+    function pretty(value) {
+        return String(value || '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    function getCookTime(recipe) {
+        if (recipe?.cooking_time) return String(recipe.cooking_time);
+        const minutes = Number(recipe?.cooking_time_minutes);
+        if (!Number.isNaN(minutes) && minutes > 0) return `${Math.round(minutes)} min`;
+        const ingredientCount = parseList(recipe?.ingredients).length || 6;
+        return `${Math.max(12, Math.min(90, ingredientCount * 4))} min`;
+    }
+
+    function getDifficulty(recipe) {
+        const ingredientCount = parseList(recipe?.ingredients).length;
+        const stepCount = parseList(recipe?.instructions).length;
+        const timeMatch = getCookTime(recipe).match(/(\d+)/);
+        const time = timeMatch ? Number(timeMatch[1]) : 20;
+        const score = ingredientCount + stepCount + (time / 8);
+        if (score < 12) return 'Easy';
+        if (score < 20) return 'Medium';
+        return 'Hard';
+    }
+
+    function getMatchPercent(recipe) {
+        if (typeof recipe?.ingredient_coverage === 'number') {
+            return `${Math.round(recipe.ingredient_coverage * 100)}%`;
+        }
+        const matched = parseList(recipe?.matched_ingredients).length;
+        const total = parseList(recipe?.normalized_ingredients?.length ? recipe.normalized_ingredients : recipe?.ingredients).length || 1;
+        return `${Math.max(0, Math.min(100, Math.round((matched / total) * 100)))}%`;
+    }
+
+    function recipeType(recipe) {
+        return window.detectRecipeType ? window.detectRecipeType(recipe) : 'veg';
+    }
+
+    function unwrapData(payload) {
+        if (payload && typeof payload === 'object' && payload.data && typeof payload.data === 'object') {
+            return payload.data;
+        }
+        return payload || {};
+    }
+
+    async function loadSavedRecipeIds() {
+        savedRecipeIds.clear();
+        try {
+            const response = await window.apiFetch('/api/recipes/all');
+            const payload = await response.json();
+            if (response.status === 401) {
+                window.location.href = '/login?next=/recipe-results';
+                return;
+            }
+            if (!response.ok || !payload.success) return;
+
+            const data = unwrapData(payload);
+            const rows = Array.isArray(payload.recipes)
+                ? payload.recipes
+                : (Array.isArray(data.recipes) ? data.recipes : []);
+            rows.forEach((recipe) => {
+                const sourceId = Number(recipe?.source_recipe_id);
+                const recipeId = Number(recipe?.id);
+                if (Number.isFinite(sourceId)) savedRecipeIds.add(sourceId);
+                if (Number.isFinite(recipeId)) savedRecipeIds.add(recipeId);
+            });
+        } catch (error) {
+            console.warn('Could not load saved recipe IDs', error);
+        }
+    }
+
+    function updateSavedCountWidgets() {
+        if (typeof window.refreshSavedRecipeCount === 'function') {
+            window.refreshSavedRecipeCount();
+        }
+        document.dispatchEvent(new CustomEvent('saved-recipes-updated'));
+    }
+
+    function recipeNumericId(recipe) {
+        const id = Number(recipe?.id);
+        return Number.isFinite(id) ? id : null;
+    }
+
+    function isSaved(recipe) {
+        const id = recipeNumericId(recipe);
+        return id !== null && savedRecipeIds.has(id);
+    }
+
+    async function toggleSaveRecipe(recipe) {
+        const id = recipeNumericId(recipe);
+        if (id === null) {
+            window.showToast('Unable to save this recipe', 'error');
+            return;
+        }
+
+        const saved = isSaved(recipe);
+        const endpoint = saved
+            ? `/api/recipes/${encodeURIComponent(id)}/unsave`
+            : '/api/recipes/save';
+        const options = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        };
+        if (!saved) {
+            options.body = JSON.stringify({ recipe_id: id });
+        }
+
+        try {
+            const response = await window.apiFetch(endpoint, options);
+            const payload = await response.json();
+            if (response.status === 401) {
+                window.location.href = '/login?next=/recipe-results';
+                return;
+            }
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || payload.message || 'Request failed');
+            }
+
+            if (saved) {
+                savedRecipeIds.delete(id);
+                window.showToast('Recipe removed from saved list', 'success');
+            } else {
+                savedRecipeIds.add(id);
+                window.showToast('Recipe saved successfully', 'success');
+            }
+
+            updateSavedCountWidgets();
+            paintCards();
+        } catch (error) {
+            window.showToast(error.message || 'Could not update recipe save state', 'error');
+        }
+    }
+
+    function renderChips() {
+        chipsHost.innerHTML = '';
+        const detected = JSON.parse(localStorage.getItem('detected') || '[]');
+        const terms = JSON.parse(localStorage.getItem('search_terms') || '[]');
+
+        const merged = [];
+        const seen = new Set();
+        [...detected.map((d) => d?.ingredient), ...terms].forEach((item) => {
+            const key = window.normalizeText(item);
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            merged.push(item);
+        });
+
+        if (!merged.length) {
+            chipsHost.innerHTML = '<span class="text-sm text-slate-400">No ingredient context found.</span>';
+            return;
+        }
+
+        merged.forEach((item) => {
+            const chip = document.createElement('span');
+            chip.className = 'ingredient-chip';
+            chip.textContent = pretty(item);
+            chipsHost.appendChild(chip);
+        });
+    }
+
+    function renderCard(recipe) {
+        const name = recipe?.name || recipe?.recipe_name || `Recipe ${recipe?.id || ''}`;
+        const ingredients = parseList(recipe?.ingredients);
+        const ingredientCount = ingredients.length;
+        const matchedIngredients = parseList(recipe?.matched_ingredients || (recipe?.explanation || {}).matched).slice(0, 4);
+        const type = recipeType(recipe);
+        const image = window.getRecipeImageUrl(recipe);
+        const fallback = window.getFallbackRecipeImage(recipe);
+        const recipeId = recipeNumericId(recipe);
+        const saveLabel = isSaved(recipe) ? 'Unsave' : 'Save Recipe';
+
+        return `
+            <article class="recipe-card fade-in">
+                <div class="recipe-image-wrap">
+                    <img src="${image}" data-fallback-image="${fallback}" alt="${name}" onerror="window.withRecipeImageFallback && window.withRecipeImageFallback(event)">
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold line-clamp-2">${name}</h3>
+                    <div class="recipe-meta-row">
+                        <span class="meta-pill">Ingredients ${ingredientCount}</span>
+                        <span class="meta-pill">${getCookTime(recipe)}</span>
+                        <span class="meta-pill">Match ${getMatchPercent(recipe)}</span>
+                        <span class="meta-pill">${type === 'veg' ? 'Veg' : 'Non-Veg'}</span>
+                    </div>
+
+                    <p class="text-xs font-semibold text-slate-300 mt-3">Matched Ingredients</p>
+                    <p class="text-sm text-slate-400 mt-1">${matchedIngredients.length ? matchedIngredients.join(', ') : 'No direct match metadata available'}</p>
+
+                    <div class="mt-4 grid grid-cols-2 gap-2">
+                        <button type="button" class="btn-ghost ripple-btn w-full" data-action="view" data-recipe-id="${recipeId || ''}">
+                            View Details
+                        </button>
+                        <button type="button" class="btn-primary ripple-btn w-full" data-action="save" data-recipe-id="${recipeId || ''}" data-saved="${isSaved(recipe) ? '1' : '0'}">
+                            ${saveLabel}
+                        </button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    function applyFilter(rows) {
+        if (activeFilter === 'veg') return rows.filter((r) => recipeType(r) === 'veg');
+        if (activeFilter === 'non-veg') return rows.filter((r) => recipeType(r) === 'non-veg');
+        if (activeFilter === 'quick') {
+            return rows.filter((r) => {
+                const m = getCookTime(r).match(/(\d+)/);
+                return m ? Number(m[1]) < 30 : false;
+            });
+        }
+        return rows;
+    }
+
+    function paintCards() {
+        const rows = applyFilter(allRecipes);
+        cardsGrid.innerHTML = '';
+
+        if (!rows.length) {
+            cardsGrid.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        cardsGrid.classList.remove('hidden');
+        cardsGrid.innerHTML = rows.map(renderCard).join('');
+
+        cardsGrid.querySelectorAll('button[data-action="view"]').forEach((btn) => {
+            const recipeId = Number(btn.dataset.recipeId);
+            btn.addEventListener('click', () => {
+                const recipe = rows.find((row) => Number(row?.id) === recipeId);
+                if (recipe) {
+                    openModal(recipe);
+                }
+            });
+        });
+
+        cardsGrid.querySelectorAll('button[data-action="save"]').forEach((btn) => {
+            const recipeId = Number(btn.dataset.recipeId);
+            btn.addEventListener('click', () => {
+                const recipe = rows.find((row) => Number(row?.id) === recipeId);
+                if (recipe) {
+                    toggleSaveRecipe(recipe);
+                }
+            });
+        });
+    }
+
+    function renderFilters() {
+        document.querySelectorAll('.filter-pill').forEach((pill) => {
+            pill.classList.toggle('active', pill.dataset.filter === activeFilter);
+            pill.addEventListener('click', () => {
+                activeFilter = pill.dataset.filter;
+                renderFilters();
+                paintCards();
+            });
+        });
+    }
+
+    function fillModal(recipe) {
+        const nameEl = document.getElementById('modalRecipeName');
+        const imageEl = document.getElementById('modalRecipeImage');
+        const typeEl = document.getElementById('modalRecipeType');
+        const timeEl = document.getElementById('modalRecipeTime');
+        const diffEl = document.getElementById('modalRecipeDifficulty');
+        const matchEl = document.getElementById('modalRecipeMatch');
+        const ingredientsEl = document.getElementById('modalIngredients');
+        const stepsEl = document.getElementById('modalInstructions');
+
+        const name = recipe?.name || recipe?.recipe_name || `Recipe ${recipe?.id || ''}`;
+        nameEl.textContent = name;
+
+        imageEl.src = window.getRecipeImageUrl(recipe);
+        imageEl.dataset.fallbackImage = window.getFallbackRecipeImage(recipe);
+        imageEl.onerror = (e) => window.withRecipeImageFallback && window.withRecipeImageFallback(e);
+
+        const type = recipeType(recipe);
+        typeEl.textContent = type === 'veg' ? 'Veg' : 'Non-Veg';
+        timeEl.textContent = getCookTime(recipe);
+        diffEl.textContent = getDifficulty(recipe);
+        matchEl.textContent = `Match ${getMatchPercent(recipe)}`;
+
+        const ingredients = parseList(recipe?.ingredients);
+        ingredientsEl.innerHTML = ingredients.length
+            ? ingredients.map((item) => `<li class="flex items-start gap-2"><span class="mt-1 text-indigo-300">&bull;</span><span>${item}</span></li>`).join('')
+            : '<li class="text-slate-400">No ingredients available.</li>';
+
+        const steps = parseList(recipe?.instructions);
+        stepsEl.innerHTML = (steps.length ? steps : ['No detailed instructions available.'])
+            .map((step, idx) => `<li class="panel-card p-3 text-slate-200"><span class="font-semibold text-indigo-300 mr-2">${idx + 1}.</span>${step}</li>`)
+            .join('');
+    }
+
+    async function openModal(recipe) {
+        fillModal(recipe);
+        modal.classList.remove('hidden');
+
+        const id = Number(recipe?.id);
+        if (Number.isFinite(id)) {
+            try {
+                const response = await window.apiFetch(`/api/recipes/${encodeURIComponent(id)}`);
+                const data = await response.json();
+                if (response.ok && data.success && data.recipe) {
+                    fillModal(data.recipe);
+                }
+            } catch (error) {
+                console.warn('Could not fetch full recipe detail', error);
+            }
+        }
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    async function loadRecipes() {
+        renderChips();
+        renderFilters();
+        await loadSavedRecipeIds();
+
+        const primary = localStorage.getItem('primary_ingredient') || '';
+        const terms = JSON.parse(localStorage.getItem('search_terms') || '[]');
+        const explanation = localStorage.getItem('recommendation_explanation') || '';
+        if (primary || terms.length || explanation) {
+            subtitle.textContent = [
+                primary ? `Primary: ${pretty(primary)}` : null,
+                terms.length ? `Terms: ${terms.slice(0, 4).map(pretty).join(', ')}` : null,
+                explanation || null
+            ].filter(Boolean).join(' | ');
+        }
+
+        const stored = localStorage.getItem('recipes');
+        allRecipes = stored ? (JSON.parse(stored) || []) : [];
+
+        skeleton.classList.add('hidden');
+        paintCards();
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    loadRecipes();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Recipe Details - RecipeAI{% endblock %}
+
+{% block content %}
+<section class="py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="mb-8">
+            <a href="/recipe-results" class="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Results
+            </a>
+        </div>
+
+        <div id="recipeCard" class="card-3d rounded-2xl p-8 hidden">
+            <h1 id="recipeName" class="text-4xl font-bold mb-6 text-gradient"></h1>
+
+            <div class="mb-8 rounded-xl overflow-hidden h-64 sm:h-80 bg-gradient-to-br from-green-400 to-blue-500">
+                <img id="recipeImage" src="/static/images/recipe_placeholder_veg.svg" alt="Recipe image" class="w-full h-full object-cover">
+            </div>
+
+            <div id="recipeMeta" class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 text-sm"></div>
+
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Ingredients</h2>
+                <ul id="ingredientsList" class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300"></ul>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-semibold mb-4">Instructions</h2>
+                <div id="instructionsBlock" class="space-y-3 text-gray-700 dark:text-gray-300"></div>
+            </div>
+        </div>
+
+        <div id="loadingState" class="text-center py-12">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 dark:text-gray-400">Loading recipe...</p>
+        </div>
+
+        <div id="errorState" class="text-center py-12 hidden">
+            <p class="text-red-600 dark:text-red-400 mb-4">Could not load this recipe.</p>
+            <a href="/recipe-results" class="btn-secondary px-5 py-2 rounded-lg inline-block">Go Back</a>
+        </div>
+    </div>
+</section>
+
+<script>
+function getRecipeId() {
+    const serverRecipeId = "{{ recipe_id | default('', true) }}";
+    if (serverRecipeId) return serverRecipeId;
+
+    const params = new URLSearchParams(window.location.search);
+    const byQuery = params.get('id');
+    if (byQuery) return byQuery;
+
+    const pathMatch = window.location.pathname.match(/^\/recipe\/(\d+)$/);
+    return pathMatch ? pathMatch[1] : null;
+}
+
+function parseListLikeField(value) {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item).trim()).filter(Boolean);
+    }
+    if (typeof value !== 'string') {
+        return [];
+    }
+
+    const raw = value.trim();
+    if (!raw) return [];
+
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+    } catch (err) {}
+
+    const deBracketed = raw.replace(/^\[/, '').replace(/\]$/, '');
+    return deBracketed
+        .split(/"\s*,\s*"|'\s*,\s*'|\n+/)
+        .map((token) => token.replace(/^["']|["']$/g, '').trim())
+        .filter(Boolean);
+}
+
+function normalizeInstructions(instructions) {
+    const parsed = parseListLikeField(instructions);
+    if (parsed.length) return parsed;
+
+    if (typeof instructions !== 'string') {
+        return ['No instructions available.'];
+    }
+
+    const fallback = instructions
+        .replace(/[\[\]"]/g, ' ')
+        .split(/[.\n]+/)
+        .map((step) => step.trim())
+        .filter(Boolean);
+    return fallback.length ? fallback : ['No instructions available.'];
+}
+
+async function loadRecipeDetails() {
+    const loading = document.getElementById('loadingState');
+    const error = document.getElementById('errorState');
+    const card = document.getElementById('recipeCard');
+    const recipeId = getRecipeId();
+
+    if (!recipeId) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const response = await window.apiFetch(`/api/recipes/${encodeURIComponent(recipeId)}`);
+        const data = await response.json();
+        if (response.status === 401) {
+            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+            return;
+        }
+        if (!response.ok || !data.success || !data.recipe) {
+            throw new Error(data.message || 'Recipe not found');
+        }
+
+        const recipe = data.recipe;
+        document.getElementById('recipeName').textContent = recipe.name || `Recipe ${recipe.id}`;
+        const recipeImage = document.getElementById('recipeImage');
+        recipeImage.src = (window.getRecipeImageUrl && window.getRecipeImageUrl(recipe, { width: 900, height: 520 })) || '/static/images/recipe_placeholder_veg.svg';
+        recipeImage.dataset.fallbackImage = (window.getFallbackRecipeImage && window.getFallbackRecipeImage(recipe)) || '/static/images/recipe_placeholder_veg.svg';
+        recipeImage.onerror = (event) => {
+            if (window.withRecipeImageFallback) {
+                window.withRecipeImageFallback(event);
+            }
+        };
+
+        const ingredients = parseListLikeField(recipe.ingredients);
+        document.getElementById('ingredientsList').innerHTML = ingredients.length
+            ? ingredients.map(item => `<li class="leading-relaxed">${item}</li>`).join('')
+            : '<li>No ingredients listed.</li>';
+
+        const instructions = normalizeInstructions(recipe.instructions);
+        document.getElementById('instructionsBlock').innerHTML = instructions
+            .map((step, index) => `
+                <div class="flex gap-3 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-3">
+                    <div class="shrink-0 w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-semibold flex items-center justify-center mt-0.5">
+                        ${index + 1}
+                    </div>
+                    <p class="leading-relaxed">${step}</p>
+                </div>
+            `)
+            .join('');
+
+        const meta = [];
+        if (recipe.prep_time) meta.push(`<div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2"><span class="font-medium">Prep:</span> ${recipe.prep_time}</div>`);
+        if (recipe.cook_time) meta.push(`<div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2"><span class="font-medium">Cook:</span> ${recipe.cook_time}</div>`);
+        if (recipe.servings) meta.push(`<div class="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-2"><span class="font-medium">Serves:</span> ${recipe.servings}</div>`);
+        document.getElementById('recipeMeta').innerHTML = meta.join('');
+
+        loading.classList.add('hidden');
+        card.classList.remove('hidden');
+    } catch (err) {
+        console.error('Recipe details error:', err);
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadRecipeDetails);
+</script>
+{% endblock %}
