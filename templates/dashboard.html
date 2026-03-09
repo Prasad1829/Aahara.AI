@@ -1,0 +1,640 @@
+<<<<<<< HEAD
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .result-count {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .recipe-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .green { background-color: #28a745; }
+        .orange { background-color: #ffc107; color: black; }
+        .red { background-color: #dc3545; }
+
+        .perfect {
+            color: green;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .top-bar a {
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .logout-link { color: red; }
+        .favorites-link { color: blue; }
+
+        .recipe-title a {
+            text-decoration: none;
+            color: black;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .recipe-title a:hover {
+            color: #28a745;
+        }
+
+        .no-match {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+
+        .favorite-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #ff4d6d;
+            color: white;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .favorite-btn:hover {
+            background-color: #e63950;
+        }
+
+        .history-section {
+            margin-top: 50px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: gray;
+        }
+
+        .history-link {
+            text-decoration: none;
+            color: black;
+        }
+
+        .history-link:hover {
+            color: #28a745;
+        }
+
+        .delete-btn {
+            color: red;
+            text-decoration: none;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .delete-btn:hover {
+            color: darkred;
+        }
+
+        .clear-btn {
+            background-color: red;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <a href="{% url 'favorites' %}" class="favorites-link">
+            ❤️ My Favorites
+        </a>
+
+        <a href="{% url 'logout' %}" class="logout-link">
+            Logout
+        </a>
+    </div>
+
+    <h2>Welcome {{ request.user.username }}</h2>
+
+    <!-- SEARCH FORM -->
+    <!-- <form method="POST">
+        {% csrf_token %}
+        <input type="text"
+               name="ingredient"
+               value="{{ user_input|default:'' }}"
+               placeholder="Enter ingredients (e.g. tomato, onion)"
+               required>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if recipes_with_score %}
+        <div class="result-count">
+            Showing {{ recipes_with_score|length }} best matched recipes
+        </div>
+    {% endif %}
+
+    <div class="recipe-container">
+        {% for item in recipes_with_score %}
+            <div class="card">
+
+                {% if item.recipe.image %}
+                    <img src="{{ item.recipe.image.url }}" alt="Recipe Image">
+                {% else %}
+                    <img src="https://via.placeholder.com/300x200.png?text=No+Image" alt="No Image">
+                {% endif %}
+
+                <h3 class="recipe-title">
+                    <a href="{% url 'recipe_detail' item.recipe.id %}">
+                        {{ item.recipe.name }}
+                    </a>
+                </h3>
+
+                {% if item.match_percentage >= 70 %}
+                    <span class="badge green">Match: {{ item.match_percentage }}%</span>
+                {% elif item.match_percentage >= 40 %}
+                    <span class="badge orange">Match: {{ item.match_percentage }}%</span>
+                {% else %}
+                    <span class="badge red">Match: {{ item.match_percentage }}%</span>
+                {% endif %}
+
+                <p>
+                    Matched: {{ item.match_count }}/{{ item.total_count }} ingredients
+                </p>
+
+                {% if item.match_percentage == 100 %}
+                    <div class="perfect">⭐ Perfect Match</div>
+                {% endif %}
+
+                <a href="{% url 'add_favorite' item.recipe.id %}" class="favorite-btn">
+                    ❤️ Add to Favorite
+                </a>
+
+            </div>
+        {% empty %}
+            <div class="no-match">
+                No good match found. Try adding more ingredients.
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- HISTORY SECTION -->
+    <!-- <div class="history-section">
+
+        <div class="history-header">
+            <h3>🔎 Recent Searches</h3>
+
+            {% if history %}
+                <form method="POST" action="{% url 'clear_history' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="clear-btn"
+                            onclick="return confirm('Clear all search history?')">
+                        Clear All
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+
+        {% for item in history %}
+            <div class="history-item">
+                <div>
+                    <a href="{% url 'dashboard' %}?ingredient={{ item.ingredients }}"
+                       class="history-link">
+                        <strong>{{ item.ingredients }}</strong>
+                    </a>
+                    <br>
+                    <span class="history-time">
+                        {{ item.searched_at|date:"d M Y - H:i" }}
+                    </span>
+                </div>
+
+                <a href="{% url 'delete_history' item.id %}"
+                   class="delete-btn"
+                   onclick="return confirm('Delete this search?')">
+                   ❌
+                </a>
+            </div>
+        {% empty %}
+            <p>No recent searches.</p>
+        {% endfor %}
+    </div>
+
+</body>
+</html> --> 
+<!-- ----------------------------------------------------------------------------------------------------------------- -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 { text-align: center; }
+
+        form {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover { background-color: #218838; }
+
+        .result-count {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .recipe-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            color: white;
+            font-size: 14px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .green { background-color: #28a745; }
+        .orange { background-color: #ffc107; color: black; }
+        .red { background-color: #dc3545; }
+
+        .perfect {
+            color: green;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .top-bar a {
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .logout-link { color: red; }
+        .favorites-link { color: blue; }
+
+        .recipe-title a {
+            text-decoration: none;
+            color: black;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .recipe-title a:hover { color: #28a745; }
+
+        .no-match {
+            text-align: center;
+            color: red;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+
+        .favorite-btn {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background-color: #ff4d6d;
+            color: white;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .favorite-btn:hover { background-color: #e63950; }
+
+        .history-section {
+            margin-top: 50px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: gray;
+        }
+
+        .history-link {
+            text-decoration: none;
+            color: black;
+        }
+
+        .history-link:hover { color: #28a745; }
+
+        .delete-btn {
+            color: red;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .clear-btn {
+            background-color: red;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="top-bar">
+    <a href="{% url 'favorites' %}" class="favorites-link">❤️ My Favorites</a>
+    <a href="{% url 'logout' %}" class="logout-link">Logout</a>
+</div>
+
+<h2>Welcome {{ request.user.username }}</h2>
+
+<form method="POST">
+    {% csrf_token %}
+    <input type="text"
+           name="ingredient"
+           value="{{ user_input|default:'' }}"
+           placeholder="Enter ingredients (e.g. tomato, onion)"
+           required>
+    <button type="submit">Search</button>
+</form>
+
+{% if recipes_with_score %}
+<div class="result-count">
+    Showing {{ recipes_with_score|length }} best matched recipes
+</div>
+{% endif %}
+
+<div class="recipe-container">
+
+{% if recipes_with_score %}
+    {% for item in recipes_with_score %}
+    <div class="card">
+
+        {% if item.recipe.image %}
+            <img src="{{ item.recipe.image.url }}">
+        {% else %}
+            <img src="https://via.placeholder.com/300x200.png?text=No+Image">
+        {% endif %}
+
+        <h3 class="recipe-title">
+            <a href="{% url 'recipe_detail' item.recipe.id %}">
+                {{ item.recipe.name }}
+            </a>
+        </h3>
+
+        {% if item.match_percentage >= 70 %}
+            <span class="badge green">Match: {{ item.match_percentage }}%</span>
+        {% elif item.match_percentage >= 40 %}
+            <span class="badge orange">Match: {{ item.match_percentage }}%</span>
+        {% else %}
+            <span class="badge red">Match: {{ item.match_percentage }}%</span>
+        {% endif %}
+
+        <p>Matched: {{ item.match_count }}/{{ item.total_count }} ingredients</p>
+
+        {% if item.match_percentage == 100 %}
+            <div class="perfect">⭐ Perfect Match</div>
+        {% endif %}
+
+        <a href="{% url 'add_favorite' item.recipe.id %}" class="favorite-btn">
+            ❤️ Add to Favorite
+        </a>
+
+    </div>
+    {% endfor %}
+
+{% elif request.method == "POST" %}
+    <div class="no-match">
+        No good match found. Try adding more ingredients.
+    </div>
+{% endif %}
+
+</div>
+
+<div class="history-section">
+
+<div class="history-header">
+<h3>🔎 Recent Searches</h3>
+
+{% if history %}
+<form method="POST" action="{% url 'clear_history' %}">
+{% csrf_token %}
+<button type="submit" class="clear-btn"
+onclick="return confirm('Clear all search history?')">
+Clear All
+</button>
+</form>
+{% endif %}
+</div>
+
+{% for item in history %}
+<div class="history-item">
+<div>
+<a href="{% url 'dashboard' %}?ingredient={{ item.ingredients }}" class="history-link">
+<strong>{{ item.ingredients }}</strong>
+</a>
+<br>
+<span class="history-time">
+{{ item.searched_at|date:"d M Y - H:i" }}
+</span>
+</div>
+
+<a href="{% url 'delete_history' item.id %}" class="delete-btn"
+onclick="return confirm('Delete this search?')">❌</a>
+</div>
+{% empty %}
+<p>No recent searches.</p>
+{% endfor %}
+
+</div>
+
+</body>
+</html>
+=======
+{% extends "base.html" %}
+{% block content %}
+<div class="grid">
+    <div class="card glass pop">
+        <h2>Dashboard</h2>
+        <p class="muted">Type ingredients separated by space or comma.</p>
+
+        <form id="genForm" class="row">
+            <input id="query" placeholder="e.g. brinjal, onion, tomato" required />
+            <button class="btn big" type="submit">Generate</button>
+        </form>
+
+        <div id="loader" class="loader hidden">
+            <div class="spinner"></div>
+            <div class="muted">Generating…</div>
+        </div>
+
+        <div id="out"></div>
+    </div>
+
+    <div class="card glass pop">
+        <h3>Tips</h3>
+        <ul class="muted">
+            <li>Misspelling works: <b>panner</b> → paneer</li>
+            <li>Unknown ingredient still generates recipe</li>
+            <li>Images auto-pick: <b>ingredient.jpg</b> else food.jpg</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+>>>>>>> 98fe10d21d95a6ddfeaee10af6cd9a5c9af65de3

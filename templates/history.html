@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card glass pop">
+    <h2>Search History</h2>
+    {% if not rows %}
+    <p class="muted">No history yet.</p>
+    {% else %}
+    <table class="table">
+        <tr>
+            <th>Ingredients</th>
+            <th>Top Result</th>
+            <th>Time</th>
+        </tr>
+        {% for q, top, t in rows %}
+        <tr>
+            <td>{{ q }}</td>
+            <td>{{ top }}</td>
+            <td>{{ t }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

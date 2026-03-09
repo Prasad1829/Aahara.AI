@@ -1,35 +1,5 @@
-# Python
-__pycache__/
-**pycache**/
-*.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Environment
-.env
-.venv/
 venv/
-
-# Model and vector artifacts
-*.npy
-*.bin
-dataset/hf_models/
-dataset/models/
-backend/yolov8n.pt
-
-# Runtime uploads
-uploads/
-
-# Frontend/node artifacts
-node_modules/
-
-# OS/editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-dataset/recipes/*.csv
-dataset/recipes/*.jsonl
+__pycache__/
+*.pyc
+db.sqlite3
+media/
