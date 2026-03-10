@@ -1,8 +1,29 @@
 import json
-from google import genai
+import time
+from app.services.ai_service import generate_text, FRIENDLY_ERROR_MESSAGE
 
-GEMINI_API_KEY = "AIzaSyDjmbzLwJHPKfDnhX6UaAS6NqEQ2m0pP-A"
-client = genai.Client(api_key=GEMINI_API_KEY)
+_INSTRUCTION_CACHE: dict[str, dict] = {}
+_CACHE_TTL_SECONDS = 15 * 60
+
+
+def _cache_get(cache_key: str) -> dict | None:
+    item = _INSTRUCTION_CACHE.get(cache_key)
+    if not item:
+        return None
+    if time.time() - item["ts"] > _CACHE_TTL_SECONDS:
+        _INSTRUCTION_CACHE.pop(cache_key, None)
+        return None
+    return item["value"]
+
+
+def _cache_set(cache_key: str, value: dict) -> None:
+    _INSTRUCTION_CACHE[cache_key] = {"ts": time.time(), "value": value}
+
+
+def _build_cache_key(ingredients: list, diet: str, spice_level: str, cooking_time: str) -> str:
+    normalized = [i.strip().lower() for i in ingredients if i]
+    normalized.sort()
+    return f"{'|'.join(normalized)}::{diet}::{spice_level}::{cooking_time}"
 
 
 def generate_recipe_instructions(
@@ -14,6 +35,13 @@ def generate_recipe_instructions(
 
     if not ingredients:
         return {"status": "error", "message": "No ingredients provided"}
+
+    cache_key = _build_cache_key(ingredients, diet, spice_level, cooking_time)
+    cached = _cache_get(cache_key)
+    if cached:
+        cached_copy = dict(cached)
+        cached_copy["cached"] = True
+        return cached_copy
 
     time_instruction = "under 20 minutes" if cooking_time == "quick" else "any duration"
 
@@ -49,11 +77,7 @@ Respond ONLY in this exact JSON format (no extra text):
 """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
-        text = response.text.strip()
+        text = generate_text(prompt)
 
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -62,21 +86,73 @@ Respond ONLY in this exact JSON format (no extra text):
 
         recipe = json.loads(text)
         recipe["status"] = "success"
+        _cache_set(cache_key, recipe)
         return recipe
 
-    except Exception as e:
-        error_msg = str(e)
-        if "429" in error_msg:
-            return {
-                "status": "error",
-                "message": "Too many requests. Please wait 1 minute and try again.",
-                "ingredients": ingredients
-            }
+    except Exception:
         return {
             "status": "error",
-            "message": f"Gemini API error: {error_msg}",
-            "ingredients": ingredients
-             }   
+            "code": "ai_unavailable",
+            "message": FRIENDLY_ERROR_MESSAGE,
+            "ingredients": ingredients,
+        }
+
+
+def generate_gemini_chat_reply(
+    messages: list[dict],
+    ingredients: list[str] | None = None,
+    diet: str = "vegetarian",
+    spice_level: str = "medium",
+    cooking_time: str = "normal",
+    recipe_name: str | None = None,
+) -> dict:
+
+    if not messages:
+        return {"status": "error", "message": "No messages provided"}
+
+    time_instruction = "under 20 minutes" if cooking_time == "quick" else "any duration"
+    ingredients_text = ", ".join(ingredients) if ingredients else "not provided"
+    recipe_text = recipe_name or "this recipe"
+
+    conversation_lines = []
+    for msg in messages:
+        role = (msg.get("role") or "user").lower()
+        content = msg.get("content") or msg.get("text") or ""
+        if not content:
+            continue
+        prefix = "User" if role == "user" else "Assistant"
+        conversation_lines.append(f"{prefix}: {content}")
+
+    prompt = f"""
+You are AHARA AI, an expert Indian recipe assistant.
+
+Context:
+- Recipe: {recipe_text}
+- Ingredients: {ingredients_text}
+- Diet: {diet}
+- Spice level: {spice_level}
+- Cooking time: {time_instruction}
+
+Conversation so far:
+{chr(10).join(conversation_lines)}
+
+Provide a helpful, concise response. If the user asks for substitutions or steps, answer clearly.
+Respond in plain text only.
+"""
+
+    try:
+        text = generate_text(prompt)
+        return {"status": "success", "reply": text}
+    except Exception:
+        return {
+            "status": "error",
+            "code": "ai_unavailable",
+            "message": FRIENDLY_ERROR_MESSAGE,
+        }
+
+
+def _fallback_chat_reply(ingredients, recipe_name, diet, spice_level, cooking_time):
+    return FRIENDLY_ERROR_MESSAGE
 
 
 if __name__ == "__main__":

@@ -1,4 +1,9 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 
@@ -6,7 +11,8 @@ from app import models
 from app.config import CORS_ORIGINS
 from app.database import SessionLocal, engine
 from app.models import Ingredient, Recipe
-from app.routes import auth, upload,instructions
+from app.routes import auth, upload, instructions, wishlist, history
+from app.services.recipe_import import import_regional_recipes
 from recipes_data import recipes_data
 
 models.Base.metadata.create_all(bind=engine)
@@ -84,8 +90,11 @@ def health_check():
 def startup_event():
     ensure_recipe_columns()
     seed_default_recipes()
+    import_regional_recipes()
 
 
 app.include_router(auth.router)
 app.include_router(upload.router, tags=["upload"])
 app.include_router(instructions.router, tags=["instructions"])
+app.include_router(wishlist.router, tags=["wishlist"])
+app.include_router(history.router, tags=["history"])

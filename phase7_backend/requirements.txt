@@ -10,3 +10,5 @@ opencv-python
 pytesseract
 tensorflow
 numpy
+python-dotenv
+google-generativeai

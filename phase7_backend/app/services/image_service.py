@@ -1,12 +1,17 @@
-import cv2
+from functools import lru_cache
+from urllib.parse import quote
 
-def preprocess_image(image_path):
-    image = cv2.imread(image_path)
+FALLBACK_IMAGE_URL = "https://source.unsplash.com/featured/?indian-food"
 
-    # Resize to 224x224 (standard CNN input)
-    image = cv2.resize(image, (224, 224))
 
-    # Normalize pixel values (0–1)
-    image = image / 255.0
+def _build_image_url(recipe_name: str) -> str:
+    query = quote(recipe_name)
+    return f"https://source.unsplash.com/featured/?food,{query}"
 
-    return image
+
+@lru_cache(maxsize=1024)
+def get_recipe_image_url(recipe_name: str | None) -> str:
+    name = (recipe_name or "").strip()
+    if not name:
+        return FALLBACK_IMAGE_URL
+    return _build_image_url(name)

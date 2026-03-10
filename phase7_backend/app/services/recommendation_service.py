@@ -1,6 +1,7 @@
 from app.database import SessionLocal
 from app.models import Recipe
 from app.services.indian_ingredients import normalize_ingredient
+from app.services.image_service import get_recipe_image_url, FALLBACK_IMAGE_URL
 
 
 def _build_recipe_payload(recipe, matched, missing, match_score):
@@ -9,6 +10,8 @@ def _build_recipe_payload(recipe, matched, missing, match_score):
         "name": recipe.name,
         "is_veg": recipe.is_veg,
         "cooking_time_minutes": recipe.cooking_time_minutes,
+        "image_url": get_recipe_image_url(recipe.name),
+        "image_fallback_url": FALLBACK_IMAGE_URL,
         "match_score": round(match_score, 2),
         "matched_ingredients": sorted(list(matched)),
         "missing_ingredients": sorted(list(missing)),
@@ -16,13 +19,27 @@ def _build_recipe_payload(recipe, matched, missing, match_score):
     }
 
 
-def find_matching_recipes(detected_ingredients):
+def find_matching_recipes(detected_ingredients, preference: str | None = None):
     db = SessionLocal()
     try:
-        detected_set = {
-            normalize_ingredient(i) for i in detected_ingredients if i and i.strip()
-        }
-        recipes = db.query(Recipe).all()
+        detected_set = set()
+        for item in detected_ingredients:
+            if not item:
+                continue
+            if isinstance(item, str):
+                parts = [p.strip() for p in item.split(",") if p.strip()]
+            else:
+                parts = [str(item).strip()]
+            for part in parts:
+                normalized = normalize_ingredient(part)
+                if normalized:
+                    detected_set.add(normalized)
+        recipes_query = db.query(Recipe)
+        if preference == "veg":
+            recipes_query = recipes_query.filter(Recipe.is_veg.is_(True))
+        elif preference == "nonveg":
+            recipes_query = recipes_query.filter(Recipe.is_veg.is_(False))
+        recipes = recipes_query.all()
 
         strong_results = []
         weak_results = []

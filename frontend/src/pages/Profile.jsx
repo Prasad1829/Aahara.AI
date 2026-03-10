@@ -1,48 +1,23 @@
-import Navbar from "../components/Navbar";
-
 export default function Profile() {
   const user = JSON.parse(localStorage.getItem("user"));
+  const CARD = {
+    background: "rgba(250,246,237,0.97)",
+    borderRadius: 20,
+    padding: 24,
+    backdropFilter: "blur(8px)",
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0B1727" }}>
-      <Navbar user={user} />
-      <main
-        style={{
-          maxWidth: "960px",
-          margin: "40px auto",
-          padding: "32px",
-          borderRadius: "24px",
-          background: "#0f172a",
-          border: "1px solid rgba(148,163,184,0.3)",
-          color: "#E5E7EB",
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: '"Playfair Display", Georgia, serif',
-            fontSize: "2rem",
-            marginBottom: "12px",
-          }}
-        >
-          Profile
-        </h1>
-        <p style={{ color: "#9CA3AF", marginBottom: "24px" }}>
-          Manage your account details and preferences. This is a placeholder page you can extend with more fields.
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div style={CARD}>
+        <div style={{ height: 8 }} />
+        <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "16px" }}>
+          Manage your account details and preferences.
         </p>
-
-        <div
-          style={{
-            padding: "20px",
-            borderRadius: "16px",
-            background: "rgba(15,23,42,0.8)",
-            border: "1px solid rgba(148,163,184,0.2)",
-          }}
-        >
-          <p>
-            <strong>Email:</strong> {user?.email || "Not available"}
-          </p>
-        </div>
-      </main>
+        <p style={{ margin: 0 }}>
+          <strong>Email:</strong> {user?.email || "Not available"}
+        </p>
+      </div>
     </div>
   );
 }

@@ -119,13 +119,17 @@ def predict_ingredient(image_path):
     confidence = float(np.max(predictions))
 
     top_indices = np.argsort(predictions)[::-1][:3]
-    top_predictions = [
-        {
-            "ingredient": class_names[int(i)],
-            "confidence": round(float(predictions[int(i)]), 2),
-        }
-        for i in top_indices
-    ]
+    top_predictions = []
+    for i in top_indices:
+        confidence_value = round(float(predictions[int(i)]), 2)
+        if confidence_value <= 0:
+            continue
+        top_predictions.append(
+            {
+                "ingredient": class_names[int(i)],
+                "confidence": confidence_value,
+            }
+        )
 
     return {
         "ingredient": class_names[predicted_index],

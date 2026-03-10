@@ -2,26 +2,35 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, ArrowLeft, X, ImageIcon, Loader2, ChefHat, Plus, Clock, Leaf, Flame, ArrowRight } from "lucide-react";
-import Navbar from "../components/Navbar";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const BG = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80";
+const FALLBACK_IMAGE = "https://source.unsplash.com/200x200/?food";
+
+function getRecipeImage(name = "") {
+  const query = encodeURIComponent(String(name || "recipe"));
+  return `https://source.unsplash.com/200x200/?food,${query}`;
+}
 
 export default function UploadImagePage() {
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
 
   const addFiles = (newFiles) => {
     const images = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
     setFiles((prev) => [...prev, ...images.map((f) => ({ file: f, preview: URL.createObjectURL(f) }))]);
-    setResults([]); setError(null);
+    setResults([]); setRecommendations([]); setError(null);
   };
 
-  const removeFile = (index) => { setFiles((prev) => prev.filter((_, i) => i !== index)); setResults([]); };
+  const removeFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setResults([]);
+    setRecommendations([]);
+  };
 
   const onDrop = useCallback((e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }, []);
 
@@ -42,12 +51,31 @@ export default function UploadImagePage() {
         else allResults.push({ ingredients: data.detected_ingredients || [], recipes: data.recommended_recipes || [] });
       }
       setResults(allResults);
+
+      const combinedIngredients = [
+        ...new Set(allResults.flatMap((r) => r.detected_ingredients || [])),
+      ];
+      if (combinedIngredients.length > 0) {
+        const res = await fetch(`${API_BASE}/recommend?ingredients=${encodeURIComponent(combinedIngredients.join(","))}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setRecommendations(data.recommended_recipes || []);
+        } else {
+          setRecommendations([]);
+        }
+      } else {
+        setRecommendations([]);
+      }
     } catch (err) { setError("Network error: " + err.message); }
     finally { setLoading(false); }
   };
 
   const allIngredients = [...new Set(results.flatMap((r) => r.ingredients || []))];
-  const allRecipes = Object.values(
+  const allRecipes = recommendations.length
+    ? recommendations
+    : Object.values(
     results.flatMap((r) => r.recipes || []).reduce((acc, r) => { const k = r.name || r; if (!acc[k]) acc[k] = r; return acc; }, {})
   );
 
@@ -60,13 +88,7 @@ export default function UploadImagePage() {
   const CARD = { background: "rgba(250,246,237,0.97)", borderRadius: 20, padding: 24, backdropFilter: "blur(8px)" };
 
   return (
-    <div style={{ minHeight: "100vh", position: "relative" }}>
-      <div style={{ position: "fixed", inset: 0,
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.6)), url('${BG}')`,
-        backgroundSize: "cover", backgroundPosition: "center", zIndex: 0 }} />
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <Navbar />
-        <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "40px 24px 80px" }}>
 
           <motion.button initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
             onClick={() => navigate("/dashboard")}
@@ -76,27 +98,6 @@ export default function UploadImagePage() {
             onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}>
             <ArrowLeft size={15} /> Back to Dashboard
           </motion.button>
-
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            style={{ ...CARD, marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 14,
-                background: "rgba(74,158,107,0.15)", border: "1px solid rgba(74,158,107,0.3)",
-                display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Upload size={22} color="#4a9e6b" />
-              </div>
-              <div>
-                <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif',
-                  fontSize: "1.8rem", fontWeight: 900, color: "#2d2d2d", margin: 0 }}>
-                  Upload Images
-                </h1>
-                <p style={{ color: "#6b7280", fontSize: "0.88rem", margin: "4px 0 0" }}>
-                  Our AI will identify your ingredients from photos.
-                </p>
-              </div>
-            </div>
-          </motion.div>
 
           {/* Drop zone */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -125,7 +126,11 @@ export default function UploadImagePage() {
                 </div>
               )}
               <input id="file-input" type="file" accept="image/*" multiple
-                style={{ display: "none" }} onChange={(e) => addFiles(e.target.files)} />
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }} />
             </div>
 
             {/* Previews */}
@@ -220,8 +225,19 @@ export default function UploadImagePage() {
                       e.currentTarget.style.background = "rgba(200,135,58,0.06)";
                       e.currentTarget.style.border = "1px solid rgba(200,135,58,0.2)";
                     }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
+                        <img
+                          src={getRecipeImage(recipe.name || recipe)}
+                          alt={recipe.name || recipe}
+                          style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = FALLBACK_IMAGE;
+                          }}
+                        />
+                        <div style={{ flex: 1 }}>
                         <h3 style={{ fontWeight: 700, color: "#2d2d2d", fontSize: "0.95rem", marginBottom: 6 }}>
                           {recipe.name || recipe}
                         </h3>
@@ -245,6 +261,25 @@ export default function UploadImagePage() {
                             </span>
                           )}
                         </div>
+                        {recipe.missing_ingredients && recipe.missing_ingredients.length > 0 && (
+                          <div style={{ marginTop: 8 }}>
+                            <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af",
+                              textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                              Missing Ingredients
+                            </p>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              {recipe.missing_ingredients.map((item, idx) => (
+                                <span key={`${item}-${idx}`} style={{ padding: "3px 10px", borderRadius: 20,
+                                  fontSize: "0.72rem", fontWeight: 600,
+                                  background: "rgba(239,68,68,0.08)", color: "#dc2626",
+                                  border: "1px solid rgba(239,68,68,0.2)" }}>
+                                  {item}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        </div>
                       </div>
                       <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 10 }} />
                     </div>
@@ -266,11 +301,9 @@ export default function UploadImagePage() {
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
               {loading
                 ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> Analyzing...</>
-                : <><ChefHat size={18} /> Identify Ingredients ({files.length} image{files.length > 1 ? "s" : ""})</>}
+                : <><ChefHat size={18} /> Generate Recipe ({files.length} image{files.length > 1 ? "s" : ""})</>}
             </motion.button>
           )}
-        </div>
       </div>
-    </div>
   );
 }

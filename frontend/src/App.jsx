@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import ScrollToTop from "./components/ScrollToTop";
+import PrivateLayout from "./components/PrivateLayout";
 import Landing from "./pages/Landing";        // ← was LandingPage
 import SplashScreen from "./pages/SplashScreen";
 import AuthPage from "./pages/AuthPage";
@@ -11,6 +13,7 @@ import RecipeDetailPage from "./pages/RecipeDetailPage";
 import Profile from "./pages/Profile";
 import HistoryPage from "./pages/History";
 import SettingsPage from "./pages/Settings";
+import Wishlist from "./pages/Wishlist";
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem("token");
@@ -20,37 +23,53 @@ function PrivateRoute({ children }) {
 function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showSplash, setShowSplash] = useState(
+    () => sessionStorage.getItem("ahara_splash_seen") !== "1"
+  );
 
-  // Show splash on every full page load/refresh.
-  const [showSplash, setShowSplash] = useState(true);
-
-  const handleSplashDone = () => {
-    setShowSplash(false);
-    if (location.pathname === "/") {
+  useEffect(() => {
+    if (!showSplash && location.pathname === "/") {
       navigate("/landing", { replace: true });
     }
-  };
+  }, [showSplash, location.pathname, navigate]);
+
+  useEffect(() => {
+    const handleUnload = () => {
+      sessionStorage.removeItem("ahara_splash_seen");
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, []);
 
   return (
     <>
       {showSplash && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9999 }}>
-          <SplashScreen onDone={handleSplashDone} />
+          <SplashScreen
+            onDone={() => {
+              sessionStorage.setItem("ahara_splash_seen", "1");
+              setShowSplash(false);
+              navigate("/landing", { replace: true });
+            }}
+          />
         </div>
       )}
 
       <Routes>
-        <Route path="/" element={<div />} />
+        <Route path="/" element={<Navigate to="/landing" replace />} />
         <Route path="/landing" element={<Landing />} />           {/* ← was LandingPage */}
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/upload-image" element={<PrivateRoute><UploadImagePage /></PrivateRoute>} />
-        <Route path="/select-vegetables" element={<PrivateRoute><SelectVegetablesPage /></PrivateRoute>} />
-        <Route path="/manual-entry" element={<PrivateRoute><ManualEntryPage /></PrivateRoute>} />
-        <Route path="/recipe/:recipeName" element={<PrivateRoute><RecipeDetailPage /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/history" element={<PrivateRoute><HistoryPage /></PrivateRoute>} />
-        <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+        <Route element={<PrivateRoute><PrivateLayout /></PrivateRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/upload-image" element={<UploadImagePage />} />
+          <Route path="/select-vegetables" element={<SelectVegetablesPage />} />
+          <Route path="/manual-entry" element={<ManualEntryPage />} />
+          <Route path="/recipe/:recipeName" element={<RecipeDetailPage />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/history" element={<HistoryPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Route>
       </Routes>
     </>
   );
@@ -59,6 +78,7 @@ function AppShell() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppShell />
     </BrowserRouter>
   );

@@ -1,9 +1,12 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, User, History, Settings, LogOut } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, User, History, Settings, LogOut, Heart } from "lucide-react";
+import hamburgerIcon from "../assets/hamburger.png";
 
 export default function Navbar({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -12,69 +15,108 @@ export default function Navbar({ user }) {
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+    { label: "Wishlist",  path: "/wishlist",  icon: Heart },
     { label: "Profile",   path: "/profile",   icon: User },
     { label: "History",   path: "/history",   icon: History },
     { label: "Settings",  path: "/settings",  icon: Settings },
+    { label: "Logout",    action: handleLogout, icon: LogOut },
   ];
 
   return (
-    <nav style={{
+    <nav className="dashboard-navbar" style={{
       position: "sticky", top: 0, zIndex: 50,
-      background: "rgba(250,246,237,0.97)",
-      borderBottom: "1px solid rgba(200,135,58,0.2)",
-      backdropFilter: "blur(12px)",
     }}>
       <div style={{
-        maxWidth: 1200, margin: "0 auto",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 24px",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        height: "70px",
+        padding: "0 24px",
+        position: "relative",
       }}>
-        <span onClick={() => navigate("/dashboard")} style={{
-          fontFamily: '"Playfair Display", Georgia, serif',
-          fontWeight: 900, fontSize: "1.4rem",
-          color: "#C8873A", cursor: "pointer",
-        }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "4px 10px", borderRadius: 10,
+              fontSize: "0.58rem", fontWeight: 600,
+              background: "transparent",
+              color: "#ffffff",
+              border: "1px solid transparent",
+              cursor: "pointer", transition: "all 0.2s",
+            }}
+          >
+            <img
+              src={hamburgerIcon}
+              alt="Menu"
+              style={{ width: 56, height: 56, objectFit: "contain", display: "block" }}
+            />
+          </button>
+
+          {menuOpen && (
+            <div style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              marginTop: 8,
+              background: "#2E8B57",
+              border: "1px solid rgba(255,255,255,0.25)",
+              borderRadius: 10,
+              padding: 6,
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+              zIndex: 60,
+            }}>
+              {navItems.map(({ label, path, icon: Icon, action }) => {
+                const active = path && location.pathname === path;
+                return (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      if (action) action();
+                      else if (path) navigate(path);
+                    }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "7px 16px", borderRadius: 10,
+                      fontSize: "0.82rem", fontWeight: 600,
+                      background: active ? "rgba(255,255,255,0.18)" : "transparent",
+                      color: "#ffffff",
+                      border: active ? "1px solid rgba(255,255,255,0.35)" : "1px solid transparent",
+                      cursor: "pointer", transition: "all 0.2s",
+                      textAlign: "left",
+                    }}
+                  >
+                    <Icon size={14} /> {label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <span
+          className="navbar-title"
+          onClick={() => navigate("/dashboard")}
+          style={{
+            fontFamily: '"Playfair Display", Georgia, serif',
+            cursor: "pointer",
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontSize: "40px",
+          }}
+        >
           Aahara.AI
         </span>
 
-        <div style={{ display: "flex", gap: 4 }}>
-          {navItems.map(({ label, path, icon: Icon }) => {
-            const active = location.pathname === path;
-            return (
-              <button key={path} onClick={() => navigate(path)} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "7px 16px", borderRadius: 10,
-                fontSize: "0.82rem", fontWeight: 600,
-                background: active ? "rgba(74,158,107,0.12)" : "transparent",
-                color: active ? "#4a9e6b" : "#6b7280",
-                border: active ? "1px solid rgba(74,158,107,0.3)" : "1px solid transparent",
-                cursor: "pointer", transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => { if (!active) e.currentTarget.style.color = "#C8873A"; }}
-              onMouseLeave={(e) => { if (!active) e.currentTarget.style.color = "#6b7280"; }}
-              >
-                <Icon size={14} /> {label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: "0.8rem", color: "#9ca3af" }}>{user?.email}</span>
-          <button onClick={handleLogout} style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "7px 14px", borderRadius: 10,
-            fontSize: "0.82rem", fontWeight: 600,
-            color: "#6b7280", background: "transparent",
-            border: "1px solid rgba(0,0,0,0.1)", cursor: "pointer",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
-          >
-            <LogOut size={14} /> Logout
-          </button>
-        </div>
+        <div />
       </div>
     </nav>
   );
 }
+

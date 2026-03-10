@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import downVeg from "../assets/down_veg.png";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -7,9 +8,13 @@ export default function AuthPage() {
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setEmail("");
+    setPassword("");
+  }, []);
 
   const handle = async (e) => {
     e.preventDefault();
@@ -42,13 +47,12 @@ export default function AuthPage() {
 
       } else {
         // REGISTER (JSON body)
-        const res = await fetch(`${API}/auth/register`, {
+        const res = await fetch(`${API}/auth/signup`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            name,
             email,
             password,
           }),
@@ -62,6 +66,8 @@ export default function AuthPage() {
         }
 
         alert("Registration successful. Please login.");
+        setEmail("");
+        setPassword("");
         setTab("login");
       }
 
@@ -73,32 +79,39 @@ export default function AuthPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(rgba(0,0,0,0.52),rgba(0,0,0,0.58)), url('https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1920&q=80') center/cover no-repeat",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'DM Sans', sans-serif",
-      }}
-    >
+    <div className="page-container" style={{ background: "#2E8B57" }}>
       <div
+        className="page-content auth-container"
         style={{
-          background: "rgba(250,246,237,0.98)",
-          borderRadius: 24,
-          padding: "44px 40px",
-          width: 460,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'DM Sans', sans-serif",
         }}
       >
+        <div className="auth-content">
+        <img
+          src={downVeg}
+          alt="Vegetable garnish"
+          className="bottom-decor-img"
+          loading="lazy"
+        />
+
         <div
+          className="auth-card"
+          style={{
+            background: "rgba(250,246,237,0.98)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+        <div
+          className="auth-title"
           style={{
             fontFamily: "'Playfair Display', serif",
             fontWeight: 900,
             fontSize: "2.6rem",
-            color: "#C8873A",
             textAlign: "center",
             marginBottom: 4,
           }}
@@ -150,21 +163,11 @@ export default function AuthPage() {
         </div>
 
         <form onSubmit={handle}>
-          {tab === "register" && (
-            <input
-              type="text"
-              required
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={inputStyle}
-            />
-          )}
 
           <input
             type="email"
             required
-            placeholder="Email"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={inputStyle}
@@ -173,10 +176,10 @@ export default function AuthPage() {
           <input
             type="password"
             required
-            placeholder="Password"
+            placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ ...inputStyle, marginBottom: 20 }}
+            style={{ ...inputStyle, marginBottom: 12 }}
           />
 
           <button
@@ -184,7 +187,7 @@ export default function AuthPage() {
             disabled={loading}
             style={{
               width: "100%",
-              padding: "14px",
+              padding: "10px 14px",
               borderRadius: 10,
               border: "none",
               background: "#2d2d2d",
@@ -202,14 +205,24 @@ export default function AuthPage() {
               : "Register"}
           </button>
         </form>
+        </div>
+        </div>
       </div>
+
+      <footer className="footer">
+        © {new Date().getFullYear()} Aahara.AI · Developed by Vara Prasad · Email:
+        <a href="mailto:varaprasad42c4@gmail.com" style={{ marginLeft: 4 }}>
+          varaprasad42c4@gmail.com
+        </a>{" "}
+        · Visakhapatnam
+      </footer>
     </div>
   );
 }
 
 const inputStyle = {
   width: "100%",
-  padding: "13px 16px",
+  padding: "10px 12px",
   borderRadius: 10,
   border: "1.5px solid rgba(200,135,58,0.2)",
   background: "#fff",
@@ -219,3 +232,4 @@ const inputStyle = {
   marginBottom: 12,
   boxSizing: "border-box",
 };
+

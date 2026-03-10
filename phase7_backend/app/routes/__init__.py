@@ -1,1 +1,1 @@
-from . import auth, upload
+from . import auth, upload, wishlist, history
