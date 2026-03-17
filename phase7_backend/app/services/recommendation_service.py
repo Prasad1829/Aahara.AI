@@ -6,12 +6,14 @@ from app.services.image_service import get_recipe_image_url, FALLBACK_IMAGE_URL
 
 def _build_recipe_payload(recipe, matched, missing, match_score):
     instructions = [s.strip() for s in (recipe.instructions or "").split("\n") if s.strip()]
+    ingredients = sorted({normalize_ingredient(ing.name) for ing in recipe.ingredients if normalize_ingredient(ing.name)})
     return {
         "name": recipe.name,
         "is_veg": recipe.is_veg,
         "cooking_time_minutes": recipe.cooking_time_minutes,
         "image_url": get_recipe_image_url(recipe.name),
         "image_fallback_url": FALLBACK_IMAGE_URL,
+        "ingredients": ingredients,
         "match_score": round(match_score, 2),
         "matched_ingredients": sorted(list(matched)),
         "missing_ingredients": sorted(list(missing)),

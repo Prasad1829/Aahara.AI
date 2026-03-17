@@ -3,49 +3,12 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Clock, Leaf, Flame, ChefHat, Send,
-  Loader2, BookOpen, ShoppingBasket, MessageCircle, Sparkles, Heart,
+  BookOpen, ShoppingBasket, MessageCircle, Sparkles, Heart,
 } from "lucide-react";
+import RecipeImage from "../components/RecipeImage";
+import RecipeGenerationLoader from "../components/RecipeGenerationLoader";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80";
-
-function getRecipeImage(name = "") {
-  const recipes = {
-    "chicken": "https://images.unsplash.com/photo-1598103442097-8b74394b95c2?w=400&q=80",
-    "fish": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=80",
-    "egg": "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80",
-    "rice": "https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400&q=80",
-    "dal": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&q=80",
-    "paneer": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80",
-    "biryani": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
-    "curry": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
-    "roti": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80",
-    "sambar": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80",
-    "dosa": "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&q=80",
-    "idli": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&q=80",
-    "soup": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80",
-    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
-    "vegetable": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
-    "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80",
-    "tomato": "https://images.unsplash.com/photo-1558818498-28c1e002b655?w=400&q=80",
-    "mushroom": "https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=400&q=80",
-    "spinach": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
-    "eggplant": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "baingan": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "bharta": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "pulao": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
-    "sabzi": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
-    "masala": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
-    "noodles": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80",
-    "pasta": "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&q=80",
-  };
-
-  const nameLower = (name || "").toLowerCase();
-  for (const [key, url] of Object.entries(recipes)) {
-    if (nameLower.includes(key)) return url;
-  }
-  return FALLBACK_IMAGE;
-}
 
 export default function RecipeDetailPage() {
   const navigate = useNavigate();
@@ -55,15 +18,19 @@ export default function RecipeDetailPage() {
   const recipe = location.state?.recipe || {};
   const detectedIngredients = location.state?.detectedIngredients || [];
   const name = recipe.name || decodeURIComponent(recipeName);
+  const recipeIngredients = recipe.ingredients || recipe.matched_ingredients || detectedIngredients;
+  const inferredDiet = recipe.is_veg === undefined
+    ? "auto"
+    : (recipe.is_veg ? "vegetarian" : "non-vegetarian");
 
   const [instructions, setInstructions] = useState(null);
   const [loadingInstructions, setLoadingInstructions] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [prefs, setPrefs] = useState({ spice_level: "medium", cooking_time: "normal" });
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistRecipeId, setWishlistRecipeId] = useState(null);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(null);
-  const [imgSrc, setImgSrc] = useState(() => getRecipeImage(name));
 
   const [messages, setMessages] = useState([{
     role: "assistant",
@@ -79,6 +46,16 @@ export default function RecipeDetailPage() {
     pendingScrollRef.current += 1;
     setMessages((prev) => [...prev, msg]);
   };
+
+  useEffect(() => {
+    setInstructions(null);
+    setChatInput("");
+    setCooldownUntil(null);
+    setMessages([{
+      role: "assistant",
+      text: `Hi! I'm your cooking assistant for **${name}**. Ask me anything about this recipe - ingredients, steps, substitutions, spice adjustments, or meal prep tips.`,
+    }]);
+  }, [name]);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, []);
 
@@ -106,7 +83,13 @@ export default function RecipeDetailPage() {
           (!recipe.id && item.name && item.name.toLowerCase() === normalizedName)
         ));
         setIsWishlisted(Boolean(match));
-      } catch { if (!cancelled) setIsWishlisted(false); }
+        setWishlistRecipeId(match?.id ?? recipe.id ?? null);
+      } catch {
+        if (!cancelled) {
+          setIsWishlisted(false);
+          setWishlistRecipeId(null);
+        }
+      }
     };
     loadWishlist();
     return () => { cancelled = true; };
@@ -128,20 +111,46 @@ export default function RecipeDetailPage() {
     recordHistory();
   }, [recipe.id, name]);
 
-  const addToWishlist = async () => {
-    if (wishlistLoading || isWishlisted) return;
+  const toggleWishlist = async () => {
+    if (wishlistLoading) return;
     setWishlistLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const body = recipe.id ? { recipe_id: recipe.id } : { recipe_name: name };
-      const res = await fetch(`${API_BASE}/wishlist`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) { const data = await res.json(); throw new Error(data.detail || "Failed"); }
-      setIsWishlisted(true);
-    } catch (err) { alert(err.message || "Failed to add to wishlist"); }
+      if (!token) throw new Error("Please login first.");
+
+      if (isWishlisted) {
+        const recipeIdToRemove = wishlistRecipeId ?? recipe.id ?? null;
+        if (!recipeIdToRemove) {
+          throw new Error("Unable to remove this recipe from wishlist right now.");
+        }
+
+        const res = await fetch(`${API_BASE}/wishlist/${recipeIdToRemove}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || "Failed");
+        }
+        setIsWishlisted(false);
+        setWishlistRecipeId(null);
+      } else {
+        const body = recipe.id ? { recipe_id: recipe.id } : { recipe_name: name };
+        const res = await fetch(`${API_BASE}/wishlist`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || "Failed");
+        }
+        setIsWishlisted(true);
+        setWishlistRecipeId(data.id ?? recipe.id ?? null);
+      }
+    } catch (err) {
+      alert(err.message || "Failed to update wishlist");
+    }
     finally { setWishlistLoading(false); }
   };
 
@@ -151,13 +160,11 @@ export default function RecipeDetailPage() {
     setLoadingInstructions(true);
     try {
       const token = localStorage.getItem("token");
-      const ingredients = recipe.matched_ingredients?.length
-        ? recipe.matched_ingredients
-        : detectedIngredients.length ? detectedIngredients : [name];
+      const ingredients = recipeIngredients.length ? recipeIngredients : [name];
       const res = await fetch(`${API_BASE}/generate-instructions`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients, preferences: prefs, recipe_name: name }),
+        body: JSON.stringify({ ingredients, preferences: { ...prefs, diet: inferredDiet }, recipe_name: name }),
       });
       const data = await res.json();
       if (!res.ok) { if (res.status === 429) setCooldownUntil(Date.now() + 60 * 1000); throw new Error(data.detail || "Failed"); }
@@ -179,7 +186,7 @@ export default function RecipeDetailPage() {
     try {
       const token = localStorage.getItem("token");
       const messagesPayload = [
-        ...messages.map((m) => ({ role: m.role, content: m.text })),
+        ...messages.slice(-6).map((m) => ({ role: m.role, content: m.text })),
         { role: "user", content: text },
       ];
       const res = await fetch(`${API_BASE}/gemini-chat`, {
@@ -187,9 +194,9 @@ export default function RecipeDetailPage() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: messagesPayload,
-          ingredients: detectedIngredients.length ? detectedIngredients : [name],
+          ingredients: recipeIngredients.length ? recipeIngredients : [name],
           recipe_name: name,
-          preferences: { ...prefs },
+          preferences: { ...prefs, diet: inferredDiet },
         }),
       });
       const data = await res.json();
@@ -199,8 +206,6 @@ export default function RecipeDetailPage() {
     } catch { appendMessage({ role: "assistant", text: "Assistant temporarily unavailable. Please try again." }); }
     finally { setChatLoading(false); }
   };
-
-  const recipeIngredients = recipe.ingredients || recipe.matched_ingredients || detectedIngredients;
 
   const CARD = { background: "rgba(250,246,237,0.97)", borderRadius: 20, backdropFilter: "blur(8px)" };
 
@@ -237,18 +242,47 @@ export default function RecipeDetailPage() {
             <motion.div key="overview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
 
               <div style={{ display: "flex", gap: 20, marginBottom: 24, alignItems: "flex-start" }}>
-                <img
-                  src={imgSrc}
-                  alt={name}
-                  onError={() => setImgSrc(FALLBACK_IMAGE)}
-                  style={{ width: 140, height: 140, borderRadius: 16, objectFit: "cover", flexShrink: 0,
-                    border: "1px solid rgba(200,135,58,0.2)" }}
-                />
+                <div style={{ width: 140, height: 140, flexShrink: 0 }}>
+                  <RecipeImage
+                    name={name}
+                    ingredients={recipeIngredients}
+                    alt={name}
+                    style={{ width: 140, height: 140, borderRadius: 16, objectFit: "cover",
+                      border: "1px solid rgba(200,135,58,0.2)" }}
+                  />
+                </div>
                 <div style={{ flex: 1 }}>
-                  <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif',
-                    fontSize: "1.6rem", fontWeight: 900, color: "#2d2d2d", marginBottom: 10 }}>
-                    {name}
-                  </h1>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <h1 style={{ fontFamily: '"Playfair Display", Georgia, serif',
+                      fontSize: "1.6rem", fontWeight: 900, color: "#2d2d2d", margin: 0 }}>
+                      {name}
+                    </h1>
+                    <button
+                      onClick={toggleWishlist}
+                      disabled={wishlistLoading}
+                      aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                      title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        border: "1px solid rgba(200,135,58,0.22)",
+                        background: isWishlisted ? "rgba(220,38,38,0.08)" : "#fff",
+                        color: isWishlisted ? "#dc2626" : "#7c4a10",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: wishlistLoading ? "not-allowed" : "pointer",
+                        flexShrink: 0,
+                        padding: 0,
+                      }}>
+                      <Heart
+                        size={16}
+                        color={isWishlisted ? "#dc2626" : "#7c4a10"}
+                        fill={isWishlisted ? "#dc2626" : "transparent"}
+                      />
+                    </button>
+                  </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
                     {recipe.is_veg !== undefined && (
                       <span style={{ display: "flex", alignItems: "center", gap: 4,
@@ -269,20 +303,6 @@ export default function RecipeDetailPage() {
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={addToWishlist}
-                    disabled={wishlistLoading || isWishlisted}
-                    style={{ display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 16px", borderRadius: 999,
-                      border: "1px solid rgba(200,135,58,0.35)",
-                      background: isWishlisted ? "rgba(200,135,58,0.1)" : "#ffffff",
-                      color: isWishlisted ? "#C8873A" : "#000000",
-                      fontSize: "0.82rem", fontWeight: 700,
-                      cursor: wishlistLoading || isWishlisted ? "not-allowed" : "pointer",
-                      fontFamily: "inherit" }}>
-                    <Heart size={14} color={isWishlisted ? "#C8873A" : "#000"} />
-                    {isWishlisted ? "In Wishlist" : wishlistLoading ? "Adding..." : "Add to Wishlist"}
-                  </button>
                 </div>
               </div>
 
@@ -346,10 +366,17 @@ export default function RecipeDetailPage() {
 
               <div style={{ marginTop: 18 }}>
                 {loadingInstructions ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "28px 0", gap: 12 }}>
-                    <Loader2 size={28} color="#C8873A" style={{ animation: "spin 1s linear infinite" }} />
-                    <p style={{ color: "#6b7280", fontSize: "0.9rem" }}>Generating instructions...</p>
-                  </div>
+                  <RecipeGenerationLoader
+                    compact
+                    accent="#C8873A"
+                    title="Generating step-by-step instructions"
+                    description="We're building a clear cooking flow for this recipe and your selected preferences."
+                    steps={[
+                      { label: "Planning the flow", Icon: BookOpen },
+                      { label: "Adjusting for preferences", Icon: Sparkles },
+                      { label: "Writing each step", Icon: ChefHat },
+                    ]}
+                  />
                 ) : instructions?.error ? (
                   <div style={{ padding: "12px 16px", borderRadius: 12,
                     background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",

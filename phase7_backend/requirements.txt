@@ -12,3 +12,4 @@ tensorflow
 numpy
 python-dotenv
 google-generativeai
+requests

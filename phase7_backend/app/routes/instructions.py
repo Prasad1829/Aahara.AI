@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 class UserPreferences(BaseModel):
-    diet: str = "vegetarian"
+    diet: str = "auto"
     spice_level: str = "medium"
     cooking_time: str = "normal"
 
@@ -57,6 +57,7 @@ async def generate_instructions(request: InstructionRequest, db: Session = Depen
 
     result = generate_recipe_instructions(
         ingredients=request.ingredients,
+        recipe_name=request.recipe_name,
         diet=prefs.diet,
         spice_level=prefs.spice_level,
         cooking_time=prefs.cooking_time

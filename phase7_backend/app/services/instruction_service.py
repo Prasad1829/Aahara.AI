@@ -26,8 +26,21 @@ def _build_cache_key(ingredients: list, diet: str, spice_level: str, cooking_tim
     return f"{'|'.join(normalized)}::{diet}::{spice_level}::{cooking_time}"
 
 
+def _normalize_diet(diet: str | None, recipe_name: str | None = None, ingredients: list[str] | None = None) -> str:
+    normalized = (diet or "").strip().lower()
+    if normalized in {"vegetarian", "veg"}:
+        return "vegetarian"
+    if normalized in {"non-vegetarian", "non vegetarian", "nonveg", "non-veg"}:
+        return "non-vegetarian"
+
+    combined = " ".join([recipe_name or "", *(ingredients or [])]).lower()
+    nonveg_markers = ("chicken", "fish", "egg", "mutton", "prawn", "shrimp", "meat")
+    return "non-vegetarian" if any(marker in combined for marker in nonveg_markers) else "vegetarian"
+
+
 def generate_recipe_instructions(
     ingredients: list,
+    recipe_name: str | None = None,
     diet: str = "vegetarian",
     spice_level: str = "medium",
     cooking_time: str = "normal"
@@ -36,7 +49,8 @@ def generate_recipe_instructions(
     if not ingredients:
         return {"status": "error", "message": "No ingredients provided"}
 
-    cache_key = _build_cache_key(ingredients, diet, spice_level, cooking_time)
+    resolved_diet = _normalize_diet(diet, recipe_name=recipe_name, ingredients=ingredients)
+    cache_key = _build_cache_key(ingredients, resolved_diet, spice_level, cooking_time)
     cached = _cache_get(cache_key)
     if cached:
         cached_copy = dict(cached)
@@ -49,11 +63,17 @@ def generate_recipe_instructions(
 You are AHARA AI, an expert Indian recipe assistant.
 
 Given these detected ingredients: {', '.join(ingredients)}
+Recipe name: {recipe_name or "not provided"}
 
 Generate a detailed recipe with these user preferences:
-- Diet type: {diet}
+- Diet type: {resolved_diet}
 - Spice level: {spice_level}
 - Cooking time: {time_instruction}
+
+Important rules:
+- Stay aligned with the recipe name if one is provided.
+- Do not convert a non-vegetarian recipe into a vegetarian one unless the user explicitly asks.
+- Mention pantry extras separately from detected ingredients.
 
 Respond ONLY in this exact JSON format (no extra text):
 {{
@@ -110,18 +130,23 @@ def generate_gemini_chat_reply(
     if not messages:
         return {"status": "error", "message": "No messages provided"}
 
+    resolved_diet = _normalize_diet(diet, recipe_name=recipe_name, ingredients=ingredients)
     time_instruction = "under 20 minutes" if cooking_time == "quick" else "any duration"
     ingredients_text = ", ".join(ingredients) if ingredients else "not provided"
     recipe_text = recipe_name or "this recipe"
 
-    conversation_lines = []
+    recent_user_messages = []
     for msg in messages:
         role = (msg.get("role") or "user").lower()
         content = msg.get("content") or msg.get("text") or ""
-        if not content:
+        content = str(content).strip()
+        if not content or role != "user":
             continue
-        prefix = "User" if role == "user" else "Assistant"
-        conversation_lines.append(f"{prefix}: {content}")
+        recent_user_messages.append(content)
+
+    latest_question = recent_user_messages[-1] if recent_user_messages else ""
+    previous_questions = recent_user_messages[-4:-1]
+    previous_questions_text = "\n".join(f"- {item}" for item in previous_questions) if previous_questions else "- None"
 
     prompt = f"""
 You are AHARA AI, an expert Indian recipe assistant.
@@ -129,12 +154,22 @@ You are AHARA AI, an expert Indian recipe assistant.
 Context:
 - Recipe: {recipe_text}
 - Ingredients: {ingredients_text}
-- Diet: {diet}
+- Diet: {resolved_diet}
 - Spice level: {spice_level}
 - Cooking time: {time_instruction}
 
-Conversation so far:
-{chr(10).join(conversation_lines)}
+Recent user questions:
+{previous_questions_text}
+
+Current user question:
+{latest_question}
+
+Rules:
+- Answer for the current recipe first. Do not mix it with earlier recipes.
+- Do not assume the user wants a vegetarian version unless they explicitly ask for substitutions.
+- For fish curry, chicken curry, egg curry, and other non-vegetarian recipes, keep the answer non-vegetarian by default.
+- If the user asks about a different recipe than the current page recipe, briefly note the mismatch and then answer the asked recipe directly.
+- Do not repeat wrong context from earlier assistant replies.
 
 Provide a helpful, concise response. If the user asks for substitutions or steps, answer clearly.
 Respond in plain text only.

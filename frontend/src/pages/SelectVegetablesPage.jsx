@@ -2,47 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, Loader2, ChefHat, ArrowRight, Clock, Leaf, Flame } from "lucide-react";
+import RecipeImage from "../components/RecipeImage";
+import RecipeGenerationLoader from "../components/RecipeGenerationLoader";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80";
-
-function getRecipeImage(name = "") {
-  const recipes = {
-    "chicken": "https://images.unsplash.com/photo-1598103442097-8b74394b95c2?w=400&q=80",
-    "fish": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=80",
-    "egg": "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80",
-    "rice": "https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400&q=80",
-    "dal": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&q=80",
-    "paneer": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80",
-    "biryani": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
-    "curry": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
-    "roti": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80",
-    "sambar": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80",
-    "dosa": "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&q=80",
-    "idli": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&q=80",
-    "soup": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80",
-    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
-    "vegetable": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
-    "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80",
-    "tomato": "https://images.unsplash.com/photo-1558818498-28c1e002b655?w=400&q=80",
-    "mushroom": "https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=400&q=80",
-    "spinach": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
-    "eggplant": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "baingan": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "bharta": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
-    "pulao": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
-    "sabzi": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
-    "masala": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
-    "noodles": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80",
-    "pasta": "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&q=80",
-  };
-
-  const nameLower = (name || "").toLowerCase();
-  for (const [key, url] of Object.entries(recipes)) {
-    if (nameLower.includes(key)) return url;
-  }
-  return FALLBACK_IMAGE;
-}
 
 const VEGETABLES = [
   { id: "tomato",      name: "Tomato",       emoji: "🍅", color: "#e05252" },
@@ -78,6 +41,7 @@ export default function SelectVegetablesPage() {
   const [loading, setLoading] = useState(false);
   const [recipes, setRecipes] = useState([]);
   const [error, setError] = useState(null);
+  const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
 
   const toggle = (id) => {
     setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -89,7 +53,6 @@ export default function SelectVegetablesPage() {
     setLoading(true); setError(null); setRecipes([]);
     try {
       const token = localStorage.getItem("token");
-      const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
       const res = await fetch(
         `${API_BASE}/recommend?ingredients=${encodeURIComponent(selectedNames.join(","))}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -102,7 +65,6 @@ export default function SelectVegetablesPage() {
   };
 
   const goToRecipe = (recipe) => {
-    const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
     navigate(`/recipe/${encodeURIComponent(recipe.name || recipe)}`, {
       state: { recipe, detectedIngredients: selectedNames },
     });
@@ -171,6 +133,18 @@ export default function SelectVegetablesPage() {
         </div>
       )}
 
+      {loading && (
+        <RecipeGenerationLoader
+          title="Building recipe ideas"
+          description="We're turning your selected ingredients into recipe matches with the best fit first."
+          steps={[
+            { label: "Reading selections", Icon: Check },
+            { label: "Matching recipes", Icon: ChefHat },
+            { label: "Finalizing results", Icon: ArrowRight },
+          ]}
+        />
+      )}
+
       {recipes.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           style={{ ...CARD, border: "1px solid rgba(200,135,58,0.3)", marginBottom: 14 }}>
@@ -200,12 +174,12 @@ export default function SelectVegetablesPage() {
                 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-                    <img
-                      src={getRecipeImage(recipe.name || recipe)}
+                    <RecipeImage
+                      name={recipe.name || recipe}
+                      ingredients={recipe.ingredients || recipe.matched_ingredients || selectedNames}
                       alt={recipe.name || recipe}
                       style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
                       loading="lazy"
-                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
                     />
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontWeight: 700, color: "#2d2d2d", fontSize: "0.88rem", marginBottom: 5 }}>

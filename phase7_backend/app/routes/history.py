@@ -75,3 +75,21 @@ def add_history(
     db.refresh(item)
 
     return _serialize(recipe, item)
+
+
+@router.delete("/{history_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_history_item(
+    history_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    item = (
+        db.query(RecipeHistory)
+        .filter(RecipeHistory.id == history_id, RecipeHistory.user_id == current_user.id)
+        .first()
+    )
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="History item not found")
+    db.delete(item)
+    db.commit()
+    return None

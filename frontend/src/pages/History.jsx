@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Clock, Leaf, Flame } from "lucide-react";
+import { ArrowRight, Clock, Leaf, Flame, Trash2 } from "lucide-react";
+import RecipeImage from "../components/RecipeImage";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -49,6 +50,24 @@ export default function History() {
         },
       },
     });
+  };
+
+  const deleteHistoryItem = async (event, historyId) => {
+    event.stopPropagation();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/history/${historyId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to delete history item");
+      }
+      setItems((prev) => prev.filter((item) => item.id !== historyId));
+    } catch (err) {
+      setError(err.message || "Failed to delete history item");
+    }
   };
 
   return (
@@ -101,8 +120,8 @@ export default function History() {
                 e.currentTarget.style.background = "rgba(250,246,237,0.97)";
                 e.currentTarget.style.border = "1px solid rgba(200,135,58,0.2)";
               }}>
-              <img
-                src={item.image_url}
+              <RecipeImage
+                name={item.recipe_name}
                 alt={item.recipe_name}
                 style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
                 loading="lazy"
@@ -132,7 +151,29 @@ export default function History() {
                   )}
                 </div>
               </div>
-              <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 10 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button
+                  onClick={(event) => deleteHistoryItem(event, item.id)}
+                  style={{
+                    border: "1px solid rgba(220,38,38,0.22)",
+                    background: "rgba(220,38,38,0.06)",
+                    color: "#dc2626",
+                    borderRadius: 10,
+                    padding: "7px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    cursor: "pointer",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    fontFamily: "inherit",
+                    flexShrink: 0,
+                  }}>
+                  <Trash2 size={13} />
+                  Delete
+                </button>
+                <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 2 }} />
+              </div>
             </motion.div>
           ))}
         </div>
