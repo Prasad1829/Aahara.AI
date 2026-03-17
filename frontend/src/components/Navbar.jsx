@@ -19,31 +19,27 @@ export default function Navbar({ user }) {
     { label: "Profile",   path: "/profile",   icon: User },
     { label: "History",   path: "/history",   icon: History },
     { label: "Settings",  path: "/settings",  icon: Settings },
-    { label: "Logout",    action: handleLogout, icon: LogOut },
   ];
 
   return (
-    <nav className="dashboard-navbar" style={{
-      position: "sticky", top: 0, zIndex: 50,
-    }}>
+    <nav className="dashboard-navbar">
       <div style={{
         width: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: "70px",
         padding: "0 24px",
         position: "relative",
       }}>
+
+        {/* Left — Hamburger */}
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             style={{
-              display: "flex", alignItems: "center", gap: 6,
+              display: "flex", alignItems: "center",
               padding: "4px 10px", borderRadius: 10,
-              fontSize: "0.58rem", fontWeight: 600,
               background: "transparent",
-              color: "#ffffff",
               border: "1px solid transparent",
               cursor: "pointer", transition: "all 0.2s",
             }}
@@ -70,15 +66,14 @@ export default function Navbar({ user }) {
               gap: 4,
               zIndex: 60,
             }}>
-              {navItems.map(({ label, path, icon: Icon, action }) => {
+              {navItems.map(({ label, path, icon: Icon }) => {
                 const active = path && location.pathname === path;
                 return (
                   <button
                     key={label}
                     onClick={() => {
                       setMenuOpen(false);
-                      if (action) action();
-                      else if (path) navigate(path);
+                      navigate(path);
                     }}
                     style={{
                       display: "flex", alignItems: "center", gap: 6,
@@ -99,6 +94,7 @@ export default function Navbar({ user }) {
           )}
         </div>
 
+        {/* Center — Title */}
         <span
           className="navbar-title"
           onClick={() => navigate("/dashboard")}
@@ -109,14 +105,37 @@ export default function Navbar({ user }) {
             left: "50%",
             transform: "translateX(-50%)",
             fontSize: "40px",
+            color: "#ffffff",
           }}
         >
           Aahara.AI
         </span>
 
-        <div />
+        {/* Right — Logout Button */}
+        <button
+          onClick={handleLogout}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 18px",
+            borderRadius: 10,
+            border: "none",
+            background: "#ffffff",
+            color: "#000000",
+            fontWeight: 700,
+            fontSize: "0.88rem",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            transition: "all 0.2s",
+            flexShrink: 0,
+          }}
+        >
+          <LogOut size={16} color="#000000" />
+          Logout
+        </button>
+
       </div>
     </nav>
   );
 }
-

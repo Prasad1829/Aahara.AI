@@ -1,14 +1,47 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Salad, Check, Loader2, ChefHat, ArrowRight, Clock, Leaf, Flame } from "lucide-react";
+import { ArrowLeft, Check, Loader2, ChefHat, ArrowRight, Clock, Leaf, Flame } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
-const FALLBACK_IMAGE = "https://source.unsplash.com/200x200/?food";
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80";
 
 function getRecipeImage(name = "") {
-  const query = encodeURIComponent(String(name || "recipe"));
-  return `https://source.unsplash.com/200x200/?food,${query}`;
+  const recipes = {
+    "chicken": "https://images.unsplash.com/photo-1598103442097-8b74394b95c2?w=400&q=80",
+    "fish": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=80",
+    "egg": "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&q=80",
+    "rice": "https://images.unsplash.com/photo-1516684732162-798a0062be99?w=400&q=80",
+    "dal": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&q=80",
+    "paneer": "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80",
+    "biryani": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
+    "curry": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
+    "roti": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&q=80",
+    "sambar": "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=80",
+    "dosa": "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?w=400&q=80",
+    "idli": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&q=80",
+    "soup": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&q=80",
+    "salad": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
+    "vegetable": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
+    "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80",
+    "tomato": "https://images.unsplash.com/photo-1558818498-28c1e002b655?w=400&q=80",
+    "mushroom": "https://images.unsplash.com/photo-1504545102780-26774c1bb073?w=400&q=80",
+    "spinach": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&q=80",
+    "eggplant": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
+    "baingan": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
+    "bharta": "https://images.unsplash.com/photo-1613743990305-99b1c1945b80?w=400&q=80",
+    "pulao": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80",
+    "sabzi": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80",
+    "masala": "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&q=80",
+    "noodles": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80",
+    "pasta": "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&q=80",
+  };
+
+  const nameLower = (name || "").toLowerCase();
+  for (const [key, url] of Object.entries(recipes)) {
+    if (nameLower.includes(key)) return url;
+  }
+  return FALLBACK_IMAGE;
 }
 
 const VEGETABLES = [
@@ -28,243 +61,200 @@ const VEGETABLES = [
   { id: "cauliflower", name: "Cauliflower",  emoji: "🥦", color: "#9aaa8a" },
   { id: "beans",       name: "Beans",        emoji: "🫘", color: "#a07050" },
   { id: "lemon",       name: "Lemon",        emoji: "🍋", color: "#c8c03a" },
-  { id: "chilli",      name: "Green Chilli", emoji: "🌶️", color: "#e03a3a" },
-  { id: "ginger",      name: "Ginger",       emoji: "🫚", color: "#c8873a" },
+  { id: "ginger",      name: "Ginger",       emoji: "🫚", color: "#c8a060" },
+  { id: "chili",       name: "Green Chili",  emoji: "🌶️", color: "#e05252" },
+  { id: "coriander",   name: "Coriander",    emoji: "🌿", color: "#4a9e6b" },
+  { id: "rice",        name: "Rice",         emoji: "🍚", color: "#c8b48a" },
+  { id: "dal",         name: "Dal / Lentils",emoji: "🫘", color: "#c8a03a" },
+  { id: "paneer",      name: "Paneer",       emoji: "🧀", color: "#f0e0a0" },
+  { id: "chicken",     name: "Chicken",      emoji: "🍗", color: "#e07a3a" },
+  { id: "egg",         name: "Egg",          emoji: "🥚", color: "#f0d070" },
+  { id: "fish",        name: "Fish",         emoji: "🐟", color: "#5a8ac8" },
 ];
 
 export default function SelectVegetablesPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState(new Set());
+  const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [recipes, setRecipes] = useState([]);
+  const [error, setError] = useState(null);
 
-  const selectedIngredientNames = [...selected]
-    .map((id) => VEGETABLES.find((v) => v.id === id)?.name)
-    .filter(Boolean);
+  const toggle = (id) => {
+    setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+    setRecipes([]); setError(null);
+  };
 
-  const toggle = (id) => setSelected((prev) => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
-
-  const handleSubmit = async () => {
-    if (selected.size === 0) return;
-    setLoading(true);
+  const handleFind = async () => {
+    if (selected.length === 0) return;
+    setLoading(true); setError(null); setRecipes([]);
     try {
       const token = localStorage.getItem("token");
-      const ingredients = selectedIngredientNames;
-      const res = await fetch(`${API_BASE}/recommend-recipes`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients }),
-      });
+      const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
+      const res = await fetch(
+        `${API_BASE}/recommend?ingredients=${encodeURIComponent(selectedNames.join(","))}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to fetch recipes.");
-      setResult(data);
-    } catch (err) { setResult({ error: err.message || "Failed to fetch recipes." }); }
+      if (!res.ok) throw new Error(data.detail || "Failed to fetch recipes");
+      setRecipes(data.recommended_recipes || []);
+    } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   const goToRecipe = (recipe) => {
-    navigate(`/recipe/${encodeURIComponent(recipe.name)}`, {
-      state: { recipe, detectedIngredients: selectedIngredientNames },
+    const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
+    navigate(`/recipe/${encodeURIComponent(recipe.name || recipe)}`, {
+      state: { recipe, detectedIngredients: selectedNames },
     });
   };
 
-  const CARD = { background: "rgba(250,246,237,0.97)", borderRadius: 20, padding: 24, backdropFilter: "blur(8px)" };
+  const CARD = { background: "rgba(250,246,237,0.97)", borderRadius: 20, padding: 20, backdropFilter: "blur(8px)" };
 
   return (
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 80px" }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 24px 80px" }}>
+      <motion.button initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+        onClick={() => navigate("/dashboard")}
+        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem",
+          color: "#ffffff", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: 8, padding: "6px 12px", cursor: "pointer", marginBottom: 20 }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.25)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}>
+        <ArrowLeft size={15} /> Back to Dashboard
+      </motion.button>
 
-          <motion.button initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-            onClick={() => navigate("/dashboard")}
-            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem",
-              color: "rgba(255,255,255,0.7)", background: "none", border: "none", cursor: "pointer", marginBottom: 24 }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}>
-            <ArrowLeft size={15} /> Back to Dashboard
-          </motion.button>
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        style={{ ...CARD, marginBottom: 14, border: "1px solid rgba(74,158,107,0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <ChefHat size={18} color="#4a9e6b" />
+          <h2 style={{ fontWeight: 800, color: "#2d2d2d", fontSize: "1rem", margin: 0 }}>
+            Select Your Ingredients
+          </h2>
+          {selected.length > 0 && (
+            <span style={{ marginLeft: "auto", padding: "3px 10px", borderRadius: 20,
+              background: "rgba(74,158,107,0.15)", color: "#2d6a4a", fontSize: "0.75rem", fontWeight: 700 }}>
+              {selected.length} selected
+            </span>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
+          {VEGETABLES.map((veg) => {
+            const isSelected = selected.includes(veg.id);
+            return (
+              <motion.button key={veg.id}
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                onClick={() => toggle(veg.id)}
+                style={{ padding: "10px 6px", borderRadius: 12, border: "none", cursor: "pointer",
+                  fontFamily: "inherit", transition: "all 0.2s", position: "relative",
+                  background: isSelected ? `${veg.color}22` : "rgba(0,0,0,0.03)",
+                  outline: isSelected ? `2px solid ${veg.color}` : "2px solid transparent" }}>
+                {isSelected && (
+                  <div style={{ position: "absolute", top: 5, right: 5, width: 16, height: 16,
+                    borderRadius: "50%", background: veg.color,
+                    display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Check size={10} color="#fff" strokeWidth={3} />
+                  </div>
+                )}
+                <div style={{ fontSize: "1.6rem", marginBottom: 4 }}>{veg.emoji}</div>
+                <p style={{ fontSize: "0.68rem", fontWeight: 600, color: isSelected ? veg.color : "#6b7280",
+                  margin: 0, lineHeight: 1.2 }}>{veg.name}</p>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
 
-          {/* Veg Grid */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            style={{ ...CARD, marginBottom: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 10 }}>
-              {VEGETABLES.map((veg, i) => {
-                const isSel = selected.has(veg.id);
-                return (
-                  <motion.div key={veg.id}
-                    initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.02 }}
-                    whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.93 }}
-                    onClick={() => toggle(veg.id)}
-                    style={{ position: "relative", borderRadius: 14, padding: "14px 8px",
-                      textAlign: "center", cursor: "pointer",
-                      background: isSel ? `${veg.color}18` : "rgba(0,0,0,0.03)",
-                      border: `2px solid ${isSel ? veg.color : "rgba(0,0,0,0.08)"}`,
-                      boxShadow: isSel ? `0 0 14px ${veg.color}33` : "none",
-                      transition: "all 0.2s" }}>
-                    <AnimatePresence>
-                      {isSel && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                          style={{ position: "absolute", top: 5, right: 5, width: 17, height: 17,
-                            borderRadius: "50%", background: veg.color,
-                            display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Check size={10} color="#fff" />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    <div style={{ fontSize: "1.8rem", marginBottom: 5 }}>{veg.emoji}</div>
-                    <p style={{ fontSize: "0.68rem", fontWeight: 600,
-                      color: isSel ? veg.color : "#6b7280" }}>
-                      {veg.name}
-                    </p>
-                  </motion.div>
-                );
-              })}
-            </div>
+      {error && (
+        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10,
+          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
+          color: "#dc2626", fontSize: "0.85rem" }}>
+          {error}
+        </div>
+      )}
 
-            {/* Selected tags */}
-            {selected.size > 0 && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.08)",
-                  display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {[...selected].map((id) => {
-                  const veg = VEGETABLES.find((v) => v.id === id);
-                  return (
-                    <span key={id} style={{ padding: "5px 12px", borderRadius: 20,
-                      fontSize: "0.76rem", fontWeight: 500,
-                      background: `${veg.color}15`, color: veg.color, border: `1px solid ${veg.color}44` }}>
-                      {veg.emoji} {veg.name}
-                    </span>
-                  );
-                })}
-              </motion.div>
-            )}
-          </motion.div>
-
-          {/* Result */}
-          {result && !result.error && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-              style={{ ...CARD, marginBottom: 16, border: "1px solid rgba(200,135,58,0.3)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <ChefHat size={18} color="#C8873A" />
-                <span style={{ fontWeight: 700, color: "#C8873A" }}>Recipe Suggestions</span>
-              </div>
-              {Array.isArray(result.recipes) && result.recipes.length === 0 && (
-                <p style={{ fontSize: "0.85rem", color: "#4b5563", lineHeight: 1.7 }}>
-                  {result.message || "No recipes found for the selected ingredients."}
-                </p>
-              )}
-              {Array.isArray(result.recipes) && result.recipes.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {result.recipes.map((recipe, idx) => (
-                    <motion.div key={`${recipe.name}-${idx}`}
-                      initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}
-                      onClick={() => goToRecipe(recipe)}
-                      style={{ padding: "14px 16px", borderRadius: 14, cursor: "pointer",
-                        background: "rgba(200,135,58,0.06)", border: "1px solid rgba(200,135,58,0.2)",
-                        transition: "all 0.2s" }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "rgba(200,135,58,0.12)";
-                        e.currentTarget.style.border = "1px solid rgba(200,135,58,0.45)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "rgba(200,135,58,0.06)";
-                        e.currentTarget.style.border = "1px solid rgba(200,135,58,0.2)";
-                      }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                          <img
-                            src={getRecipeImage(recipe.name)}
-                            alt={recipe.name}
-                            style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
-                            loading="lazy"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src = FALLBACK_IMAGE;
-                            }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <h3 style={{ fontWeight: 700, color: "#2d2d2d", fontSize: "0.95rem", marginBottom: 6 }}>
-                              {recipe.name}
-                            </h3>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                              {recipe.is_veg !== undefined && (
-                                <span style={{ display: "flex", alignItems: "center", gap: 4,
-                                  padding: "3px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600,
-                                  background: recipe.is_veg ? "rgba(74,158,107,0.12)" : "rgba(239,68,68,0.1)",
-                                  color: recipe.is_veg ? "#2d6a4a" : "#dc2626",
-                                  border: `1px solid ${recipe.is_veg ? "rgba(74,158,107,0.3)" : "rgba(239,68,68,0.25)"}` }}>
-                                  {recipe.is_veg ? <Leaf size={11} /> : <Flame size={11} />}
-                                  {recipe.is_veg ? "Veg" : "Non-Veg"}
-                                </span>
-                              )}
-                              {recipe.cooking_time_minutes && (
-                                <span style={{ display: "flex", alignItems: "center", gap: 4,
-                                  padding: "3px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600,
-                                  background: "rgba(200,135,58,0.1)", color: "#C8873A",
-                                  border: "1px solid rgba(200,135,58,0.25)" }}>
-                                  <Clock size={11} /> {recipe.cooking_time_minutes} min
-                                </span>
-                              )}
-                            </div>
-                            {recipe.missing_ingredients?.length > 0 && (
-                              <div style={{ marginTop: 8 }}>
-                                <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#9ca3af",
-                                  textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                                  Missing Ingredients
-                                </p>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                                  {recipe.missing_ingredients.map((item, mIdx) => (
-                                    <span key={`${item}-${mIdx}`} style={{ padding: "3px 10px", borderRadius: 20,
-                                      fontSize: "0.72rem", fontWeight: 600,
-                                      background: "rgba(239,68,68,0.08)", color: "#dc2626",
-                                      border: "1px solid rgba(239,68,68,0.2)" }}>
-                                      {item}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 10 }} />
+      {recipes.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          style={{ ...CARD, border: "1px solid rgba(200,135,58,0.3)", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <ChefHat size={16} color="#C8873A" />
+            <span style={{ fontWeight: 700, color: "#C8873A", fontSize: "0.9rem" }}>
+              Recipes Found ({recipes.length}) — tap to view
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recipes.map((recipe, i) => (
+              <motion.div key={i}
+                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
+                whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}
+                onClick={() => goToRecipe(recipe)}
+                style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer",
+                  background: "rgba(200,135,58,0.06)", border: "1px solid rgba(200,135,58,0.2)",
+                  transition: "all 0.2s" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(200,135,58,0.12)";
+                  e.currentTarget.style.border = "1px solid rgba(200,135,58,0.45)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(200,135,58,0.06)";
+                  e.currentTarget.style.border = "1px solid rgba(200,135,58,0.2)";
+                }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                    <img
+                      src={getRecipeImage(recipe.name || recipe)}
+                      alt={recipe.name || recipe}
+                      style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
+                      loading="lazy"
+                      onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = FALLBACK_IMAGE; }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontWeight: 700, color: "#2d2d2d", fontSize: "0.88rem", marginBottom: 5 }}>
+                        {recipe.name || recipe}
+                      </h3>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {recipe.is_veg !== undefined && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 4,
+                            padding: "2px 8px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 600,
+                            background: recipe.is_veg ? "rgba(74,158,107,0.12)" : "rgba(239,68,68,0.1)",
+                            color: recipe.is_veg ? "#2d6a4a" : "#dc2626",
+                            border: `1px solid ${recipe.is_veg ? "rgba(74,158,107,0.3)" : "rgba(239,68,68,0.25)"}` }}>
+                            {recipe.is_veg ? <Leaf size={10} /> : <Flame size={10} />}
+                            {recipe.is_veg ? "Veg" : "Non-Veg"}
+                          </span>
+                        )}
+                        {recipe.cooking_time_minutes && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 4,
+                            padding: "2px 8px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 600,
+                            background: "rgba(200,135,58,0.1)", color: "#C8873A",
+                            border: "1px solid rgba(200,135,58,0.25)" }}>
+                            <Clock size={10} /> {recipe.cooking_time_minutes} min
+                          </span>
+                        )}
                       </div>
-                    </motion.div>
-                  ))}
+                    </div>
+                  </div>
+                  <ArrowRight size={15} style={{ color: "#C8873A" }} />
                 </div>
-              )}
-              {!Array.isArray(result.recipes) && (
-                <p style={{ fontSize: "0.85rem", color: "#4b5563", lineHeight: 1.7, whiteSpace: "pre-line" }}>
-                  {result.message || "No recipes found for the selected ingredients."}
-                </p>
-              )}
-            </motion.div>
-          )}
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
-          {result?.error && (
-            <div style={{ marginBottom: 14, padding: "12px 16px", borderRadius: 12,
-              background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",
-              color: "#dc2626", fontSize: "0.85rem" }}>
-              {result.error}
-            </div>
-          )}
-
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            onClick={handleSubmit} disabled={selected.size === 0 || loading}
-            style={{ width: "100%", padding: "15px", borderRadius: 16, border: "none",
-              background: selected.size === 0 ? "rgba(0,0,0,0.12)" : "#C8873A",
-              color: selected.size === 0 ? "#9ca3af" : "#fff",
-              fontSize: "1rem", fontWeight: 700, fontFamily: "inherit",
-              cursor: selected.size === 0 ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            {loading
-              ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> Getting Recipes...</>
-              : <><ChefHat size={18} /> Find Recipes</>}
-          </motion.button>
-      </div>
+      {selected.length > 0 && (
+        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          onClick={handleFind} disabled={loading}
+          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          style={{ marginTop: 4, width: "100%", padding: "13px", borderRadius: 14,
+            border: "none", cursor: loading ? "not-allowed" : "pointer",
+            background: loading ? "rgba(74,158,107,0.4)" : "#4a9e6b",
+            color: "#fff", fontSize: "0.95rem", fontWeight: 700, fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          {loading
+            ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Finding Recipes...</>
+            : <><ChefHat size={16} /> Find Recipes ({selected.length} ingredient{selected.length > 1 ? "s" : ""})</>}
+        </motion.button>
+      )}
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import ScrollToTop from "./components/ScrollToTop";
 import PrivateLayout from "./components/PrivateLayout";
-import Landing from "./pages/Landing";        // ← was LandingPage
+import Landing from "./pages/Landing";
 import SplashScreen from "./pages/SplashScreen";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
@@ -57,7 +57,7 @@ function AppShell() {
 
       <Routes>
         <Route path="/" element={<Navigate to="/landing" replace />} />
-        <Route path="/landing" element={<Landing />} />           {/* ← was LandingPage */}
+        <Route path="/landing" element={<Landing />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route element={<PrivateRoute><PrivateLayout /></PrivateRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />

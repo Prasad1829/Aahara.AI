@@ -8,6 +8,12 @@ html, body {
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -92,6 +98,8 @@ select {
 .app-layout {
   min-height: 100vh;
   position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .app-background {
@@ -108,11 +116,15 @@ select {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .app-content {
   flex: 1;
   padding-bottom: 80px;
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard-navbar {
@@ -120,19 +132,14 @@ select {
   height: 70px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
   width: 100%;
-  max-width: 100%;
-  left: 0;
-  right: 0;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
 }
 
 .dashboard-navbar .navbar-title {
@@ -140,12 +147,6 @@ select {
   font-weight: 600;
   font-size: 26px;
   margin: 0;
-}
-
-.dashboard-navbar a,
-.dashboard-navbar button,
-.dashboard-navbar svg {
-  color: #ffffff;
 }
 
 .cards-container {
@@ -206,7 +207,6 @@ select {
   color: #000000;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
 }
-
 
 .auth-container {
   position: relative;

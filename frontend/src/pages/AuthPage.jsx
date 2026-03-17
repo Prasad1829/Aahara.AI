@@ -1,77 +1,105 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import downVeg from "../assets/down_veg.png";
+import googleIcon from "../assets/google.svg";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function AuthPage() {
-  const [tab, setTab] = useState("login");
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleError, setGoogleError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     setEmail("");
     setPassword("");
-  }, []);
+    setGoogleError("");
+  }, [mode]);
+
+  useEffect(() => {
+  let tries = 0;
+  const maxTries = 30;
+
+  const interval = setInterval(() => {
+    tries++;
+    if (window.google?.accounts?.id) {
+      clearInterval(interval);
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          setGoogleError("");
+          try {
+            const res = await fetch(`${API}/auth/google`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id_token: response.credential }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              setGoogleError(data.detail || "Google login failed.");
+              return;
+            }
+            localStorage.setItem("token", data.access_token);
+            localStorage.setItem("user", JSON.stringify(data.user));
+            navigate("/dashboard");
+          } catch {
+            setGoogleError("Google sign-in failed. Please try again.");
+          }
+        },
+      });
+    }
+    if (tries >= maxTries) {
+      clearInterval(interval);
+      setGoogleError("Google sign-in unavailable. Check your internet connection.");
+    }
+  }, 300);
+
+  return () => clearInterval(interval);
+}, []);
+
+const handleGoogleClick = () => {
+  if (window.google?.accounts?.id) {
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        setGoogleError("Google sign-in was blocked. Please allow popups and try again.");
+      }
+    });
+  } else {
+    setGoogleError("Google sign-in is still loading. Please try again in a moment.");
+  }
+};
 
   const handle = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      if (tab === "login") {
-        // LOGIN (FastAPI OAuth2PasswordRequestForm expects form-data)
+      if (mode === "login") {
         const res = await fetch(`${API}/auth/login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            username: email,
-            password: password,
-          }),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ username: email, password }),
         });
-
         const data = await res.json();
-
-        if (!res.ok) {
-          alert(data.detail || "Invalid email or password");
-          return;
-        }
-
+        if (!res.ok) { alert(data.detail || "Invalid email or password"); return; }
         localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify({ email }));
         navigate("/dashboard");
-
       } else {
-        // REGISTER (JSON body)
         const res = await fetch(`${API}/auth/signup`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
         });
-
         const data = await res.json();
-
-        if (!res.ok) {
-          alert(data.detail || "Registration failed");
-          return;
-        }
-
+        if (!res.ok) { alert(data.detail || "Registration failed"); return; }
         alert("Registration successful. Please login.");
-        setEmail("");
-        setPassword("");
-        setTab("login");
+        setEmail(""); setPassword(""); setMode("login");
       }
-
-    } catch (err) {
+    } catch {
       alert("Server error. Make sure backend is running.");
     } finally {
       setLoading(false);
@@ -90,122 +118,154 @@ export default function AuthPage() {
         }}
       >
         <div className="auth-content">
-        <img
-          src={downVeg}
-          alt="Vegetable garnish"
-          className="bottom-decor-img"
-          loading="lazy"
-        />
+          <img
+            src={downVeg}
+            alt="Vegetable garnish"
+            className="bottom-decor-img"
+            loading="lazy"
+          />
 
-        <div
-          className="auth-card"
-          style={{
-            background: "rgba(250,246,237,0.98)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
-            position: "relative",
-            zIndex: 2,
-          }}
-        >
-        <div
-          className="auth-title"
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontWeight: 900,
-            fontSize: "2.6rem",
-            textAlign: "center",
-            marginBottom: 4,
-          }}
-        >
-          Aahara.AI
-        </div>
+          <div
+            className="auth-card"
+            style={{
+              background: "rgba(250,246,237,0.98)",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              position: "relative",
+              zIndex: 2,
+              transform: "scale(0.9)",
+              transformOrigin: "center top",
+            }}
+          >
+            {/* Title */}
+            <div style={{
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 900,
+              fontSize: "2.6rem",
+              textAlign: "center",
+              color: "#2E8B57",
+              marginBottom: 4,
+            }}>
+              Aahara.AI
+            </div>
 
-        <p
-          style={{
-            textAlign: "center",
-            color: "#6b7280",
-            fontSize: "0.85rem",
-            marginBottom: 24,
-          }}
-        >
-          Access your recipe assistant
-        </p>
+            <p style={{ textAlign: "center", color: "#6b7280", fontSize: "0.85rem", marginBottom: 20 }}>
+              Access your recipe assistant
+            </p>
 
-        {/* Tab Switch */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            background: "#ede9df",
-            borderRadius: 12,
-            padding: 4,
-            marginBottom: 24,
-          }}
-        >
-          {["login", "register"].map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
+            {/* Single tab */}
+            <div style={{
+              background: "#ede9df",
+              borderRadius: 12,
+              padding: 4,
+              marginBottom: 20,
+            }}>
+              <button style={{
+                width: "100%",
                 padding: "10px",
                 borderRadius: 9,
                 border: "none",
-                background: tab === t ? "#4a9e6b" : "transparent",
-                color: tab === t ? "#fff" : "#9ca3af",
+                background: "#4a9e6b",
+                color: "#fff",
                 fontWeight: 700,
                 fontSize: "0.88rem",
-                cursor: "pointer",
-                textTransform: "capitalize",
-              }}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+                cursor: "default",
+              }}>
+                {mode === "login" ? "Login" : "Register"}
+              </button>
+            </div>
 
-        <form onSubmit={handle}>
+            {/* Form */}
+            <form onSubmit={handle}>
+              <input
+                type="email"
+                required
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+              <input
+                type="password"
+                required
+                placeholder={mode === "login" ? "Enter your password" : "Create a password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ ...inputStyle, marginBottom: 14 }}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  padding: "11px 14px",
+                  borderRadius: 10,
+                  border: "none",
+                  background: "#2d2d2d",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  opacity: loading ? 0.7 : 1,
+                  marginBottom: 14,
+                }}
+              >
+                {loading ? "Please wait..." : mode === "login" ? "Login" : "Register"}
+              </button>
+            </form>
 
-          <input
-            type="email"
-            required
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
-          />
+            {/* Toggle link */}
+            <p style={{ textAlign: "center", marginBottom: 14 }}>
+              {mode === "login" ? (
+                <span
+                  onClick={() => setMode("register")}
+                  style={{ color: "#2E8B57", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}
+                >
+                  Create new account
+                </span>
+              ) : (
+                <span
+                  onClick={() => setMode("login")}
+                  style={{ color: "#2E8B57", fontWeight: 700, fontSize: "0.9rem", cursor: "pointer" }}
+                >
+                  Back to Login
+                </span>
+              )}
+            </p>
 
-          <input
-            type="password"
-            required
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ ...inputStyle, marginBottom: 12 }}
-          />
+            {/* Divider */}
+            <div style={{ textAlign: "center", color: "#9ca3af", fontSize: "0.82rem", marginBottom: 14 }}>
+              or continue with
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "none",
-              background: "#2d2d2d",
-              color: "#fff",
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.7 : 1,
-            }}
-          >
-            {loading
-              ? "Please wait..."
-              : tab === "login"
-              ? "Login"
-              : "Register"}
-          </button>
-        </form>
-        </div>
+            {/* Google Button */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <button
+                onClick={handleGoogleClick}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  border: "1.5px solid #e5e7eb",
+                  background: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  transition: "box-shadow 0.2s",
+                }}
+              >
+                <img src={googleIcon} alt="Google" style={{ width: 28, height: 28 }} />
+              </button>
+            </div>
+
+            {/* Google error */}
+            {googleError && (
+              <p style={{ textAlign: "center", color: "#ef4444", fontSize: "0.82rem", marginTop: 6 }}>
+                {googleError}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -232,4 +292,3 @@ const inputStyle = {
   marginBottom: 12,
   boxSizing: "border-box",
 };
-

@@ -19,3 +19,4 @@ CORS_ORIGINS = [
     for origin in get_env("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
     if origin.strip()
 ]
+GOOGLE_CLIENT_ID = get_env("GOOGLE_CLIENT_ID", "")
