@@ -5,18 +5,18 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import Recipe, User, Wishlist
 from app.schemas.wishlist import WishlistCreate, WishlistRecipe
-from app.services.image_service import get_recipe_image_url, FALLBACK_IMAGE_URL
+from app.services.image_service import FALLBACK_IMAGE_URL, get_cached_recipe_image_url
 
 router = APIRouter(prefix="/wishlist", tags=["wishlist"])
 
 
-def _serialize_recipe(recipe: Recipe) -> dict:
+def _serialize_recipe(recipe: Recipe, db: Session) -> dict:
     return {
         "id": recipe.id,
         "name": recipe.name,
         "is_veg": recipe.is_veg,
         "cooking_time_minutes": recipe.cooking_time_minutes,
-        "image_url": get_recipe_image_url(recipe.name),
+        "image_url": get_cached_recipe_image_url(recipe, db),
         "image_fallback_url": FALLBACK_IMAGE_URL,
     }
 
@@ -33,7 +33,7 @@ def get_wishlist(
         .order_by(Wishlist.created_at.desc())
         .all()
     )
-    return [_serialize_recipe(item) for item in items]
+    return [_serialize_recipe(item, db) for item in items]
 
 
 @router.post("", response_model=WishlistRecipe)
@@ -62,12 +62,12 @@ def add_to_wishlist(
         .first()
     )
     if existing:
-        return _serialize_recipe(recipe)
+        return _serialize_recipe(recipe, db)
 
     wishlist = Wishlist(user_id=current_user.id, recipe_id=recipe.id)
     db.add(wishlist)
     db.commit()
-    return _serialize_recipe(recipe)
+    return _serialize_recipe(recipe, db)
 
 
 @router.delete("/{recipe_id}", status_code=status.HTTP_204_NO_CONTENT)

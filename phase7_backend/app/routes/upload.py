@@ -10,7 +10,7 @@ import shutil
 
 from app.services.ml_service import predict_ingredient
 from app.services.ocr_services import extract_text
-from app.services.recommendation_service import find_matching_recipes
+from app.services.recommendation_service import get_recipe_recommendations
 from app.services.text_cleaner import clean_ocr_text
 from app.services.indian_ingredients import INDIAN_INGREDIENT_CLASSES, normalize_ingredient
 
@@ -70,7 +70,7 @@ async def upload_image(
         text_found = ", ".join(ocr_ingredients) if ocr_ingredients else None
 
         detected_ingredients = combined
-        recommended_recipes = find_matching_recipes(detected_ingredients, preference=preference)
+        recommendation_data = get_recipe_recommendations(detected_ingredients, preference=preference)
 
         return {
             "user": current_user.email,
@@ -83,7 +83,8 @@ async def upload_image(
                 "message": "Detected ingredients from image" if combined else "No ingredients detected",
             },
             "detected_ingredients": detected_ingredients,
-            "recommended_recipes": recommended_recipes,
+            "recommended_recipes": recommendation_data["recommended_recipes"],
+            "additional_recipes": recommendation_data["additional_recipes"],
         }
 
     except Exception as e:
@@ -93,11 +94,12 @@ async def upload_image(
 @router.get("/test-recommendation")
 def test_recommendation(current_user: User = Depends(get_current_user)):
     detected_ingredients = ["chicken", "onion", "tomato"]
-    recommended = find_matching_recipes(detected_ingredients)
+    recommendation_data = get_recipe_recommendations(detected_ingredients)
     return {
         "user": current_user.email,
         "detected_ingredients": detected_ingredients,
-        "recommended_recipes": recommended,
+        "recommended_recipes": recommendation_data["recommended_recipes"],
+        "additional_recipes": recommendation_data["additional_recipes"],
     }
 
 
@@ -108,11 +110,32 @@ def recommend_from_ingredients(
     preference: str | None = Query(default=None, pattern="^(veg|nonveg)?$"),
 ):
     detected_ingredients = [item.strip().lower() for item in ingredients.split(",") if item.strip()]
-    recommended = find_matching_recipes(detected_ingredients, preference=preference)
+    recommendation_data = get_recipe_recommendations(detected_ingredients, preference=preference)
     return {
         "user": current_user.email,
         "detected_ingredients": detected_ingredients,
-        "recommended_recipes": recommended,
+        "recommended_recipes": recommendation_data["recommended_recipes"],
+        "additional_recipes": recommendation_data["additional_recipes"],
+    }
+
+
+@router.post("/recommend")
+def recommend_from_payload(
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    preference: str | None = Query(default=None, pattern="^(veg|nonveg)?$"),
+):
+    ingredients = payload.get("ingredients", []) if isinstance(payload, dict) else []
+    if not isinstance(ingredients, list):
+        ingredients = []
+
+    detected_ingredients = [item.strip().lower() for item in ingredients if isinstance(item, str) and item.strip()]
+    recommendation_data = get_recipe_recommendations(detected_ingredients, preference=preference)
+    return {
+        "user": current_user.email,
+        "detected_ingredients": detected_ingredients,
+        "recommended_recipes": recommendation_data["recommended_recipes"],
+        "additional_recipes": recommendation_data["additional_recipes"],
     }
 
 
@@ -146,9 +169,13 @@ def recommend_recipes(
             "message": "Check your ingredient spelling.",
         }
 
-    recommended = find_matching_recipes(normalized_inputs, preference=preference)
+    recommendation_data = get_recipe_recommendations(normalized_inputs, preference=preference)
     return {
         "user": current_user.email,
-        "recipes": recommended,
-        "message": "No recipes found for the selected ingredients." if not recommended else None,
+        "recommended_recipes": recommendation_data["recommended_recipes"],
+        "additional_recipes": recommendation_data["additional_recipes"],
+        "recipes": recommendation_data["recommended_recipes"],
+        "message": "No recipes found for the selected ingredients."
+        if not recommendation_data["recommended_recipes"] and not recommendation_data["additional_recipes"]
+        else None,
     }

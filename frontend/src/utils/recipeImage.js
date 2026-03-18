@@ -92,6 +92,17 @@ function normalizeIngredients(ingredients = []) {
   return [String(ingredients).trim()].filter(Boolean);
 }
 
+function buildRecipeQueryImage(name = "", ingredients = [], themeKey = "generic") {
+  const recipeName = normalizeRecipeKey(name).replace(/\s+/g, ",");
+  const ingredientTerms = normalizeIngredients(ingredients)
+    .slice(0, 3)
+    .map((item) => item.toLowerCase().replace(/\s+/g, ","))
+    .join(",");
+  const themeTerm = String(themeKey || "indian food").replace(/([A-Z])/g, " $1").toLowerCase().trim().replace(/\s+/g, ",");
+  const searchTerms = ["indian-food", recipeName, ingredientTerms, themeTerm].filter(Boolean).join(",");
+  return `https://source.unsplash.com/featured/320x320/?${searchTerms}`;
+}
+
 function getRecipeThemeKey(name = "", ingredients = []) {
   const recipeKey = normalizeRecipeKey(name);
   if (EXACT_RECIPE_THEME_KEYS[recipeKey]) {
@@ -109,12 +120,13 @@ function getRecipeThemeKey(name = "", ingredients = []) {
 
 export function getRecipePlaceholderImage(name = "", ingredients = []) {
   const themeKey = getRecipeThemeKey(name, ingredients);
-  return RECIPE_PHOTO_URLS[themeKey] || RECIPE_PHOTO_URLS.generic;
+  return buildRecipeQueryImage(name, ingredients, themeKey);
 }
 
 export function getRecipeImageSources(name = "", ingredients = []) {
   const themeKey = getRecipeThemeKey(name, ingredients);
   return [
+    buildRecipeQueryImage(name, ingredients, themeKey),
     RECIPE_PHOTO_URLS[themeKey] || RECIPE_PHOTO_URLS.generic,
     RECIPE_PHOTO_URLS.generic,
   ];

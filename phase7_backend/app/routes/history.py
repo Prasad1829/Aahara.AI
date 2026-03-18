@@ -5,19 +5,19 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models import Recipe, User, RecipeHistory
 from app.schemas.history import HistoryCreate, HistoryItem
-from app.services.image_service import get_recipe_image_url
+from app.services.image_service import get_cached_recipe_image_url, get_recipe_image_url
 
 router = APIRouter(prefix="/history", tags=["history"])
 
 
-def _serialize(recipe: Recipe | None, history: RecipeHistory) -> dict:
+def _serialize(recipe: Recipe | None, history: RecipeHistory, db: Session) -> dict:
     name = recipe.name if recipe else history.recipe_name
     return {
         "id": history.id,
         "recipe_name": name,
         "is_veg": recipe.is_veg if recipe else None,
         "cooking_time_minutes": recipe.cooking_time_minutes if recipe else None,
-        "image_url": get_recipe_image_url(name),
+        "image_url": get_cached_recipe_image_url(recipe, db) if recipe else get_recipe_image_url(name),
     }
 
 
@@ -36,7 +36,7 @@ def get_history(
     results = []
     for item in items:
         recipe = db.query(Recipe).filter(Recipe.id == item.recipe_id).first() if item.recipe_id else None
-        results.append(_serialize(recipe, item))
+        results.append(_serialize(recipe, item, db))
     return results
 
 
@@ -74,7 +74,7 @@ def add_history(
     db.commit()
     db.refresh(item)
 
-    return _serialize(recipe, item)
+    return _serialize(recipe, item, db)
 
 
 @router.delete("/{history_id}", status_code=status.HTTP_204_NO_CONTENT)

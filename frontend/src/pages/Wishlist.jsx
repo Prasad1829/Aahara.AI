@@ -103,6 +103,8 @@ export default function Wishlist() {
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
                   <RecipeImage
                     name={recipe.name}
+                    imageUrl={recipe.image_url}
+                    imageFallbackUrl={recipe.image_fallback_url}
                     alt={recipe.name}
                     style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
                     loading="lazy"

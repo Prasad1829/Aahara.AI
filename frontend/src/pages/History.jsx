@@ -11,6 +11,7 @@ export default function History() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [clearLoading, setClearLoading] = useState(false);
   const CARD = {
     background: "rgba(250,246,237,0.97)",
     borderRadius: 20,
@@ -52,28 +53,63 @@ export default function History() {
     });
   };
 
-  const deleteHistoryItem = async (event, historyId) => {
-    event.stopPropagation();
+  const clearAllHistory = async () => {
+    if (clearLoading || items.length === 0) return;
+
+    setClearLoading(true);
+    setError("");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/history/${historyId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to delete history item");
+      for (const item of items) {
+        const res = await fetch(`${API_BASE}/history/${item.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || "Failed to clear history");
+        }
       }
-      setItems((prev) => prev.filter((item) => item.id !== historyId));
+      setItems([]);
     } catch (err) {
-      setError(err.message || "Failed to delete history item");
+      setError(err.message || "Failed to clear history");
+    } finally {
+      setClearLoading(false);
     }
   };
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
       <div style={CARD}>
-        <div style={{ height: 8 }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: "1.35rem", fontWeight: 800, color: "#2d2d2d" }}>History</h1>
+          </div>
+          {items.length > 0 && (
+            <button
+              onClick={clearAllHistory}
+              disabled={clearLoading}
+              style={{
+                border: "1px solid rgba(220,38,38,0.22)",
+                background: "rgba(220,38,38,0.06)",
+                color: "#dc2626",
+                borderRadius: 10,
+                padding: "9px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                cursor: clearLoading ? "not-allowed" : "pointer",
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                fontFamily: "inherit",
+                flexShrink: 0,
+              }}
+            >
+              <Trash2 size={14} />
+              {clearLoading ? "Removing..." : "Remove All"}
+            </button>
+          )}
+        </div>
         <p style={{ color: "#6b7280", fontSize: "0.9rem", marginBottom: "16px" }}>
           View your past recipe generations and ingredient detections.
         </p>
@@ -122,6 +158,7 @@ export default function History() {
               }}>
               <RecipeImage
                 name={item.recipe_name}
+                imageUrl={item.image_url}
                 alt={item.recipe_name}
                 style={{ width: 56, height: 56, borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
                 loading="lazy"
@@ -151,29 +188,7 @@ export default function History() {
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button
-                  onClick={(event) => deleteHistoryItem(event, item.id)}
-                  style={{
-                    border: "1px solid rgba(220,38,38,0.22)",
-                    background: "rgba(220,38,38,0.06)",
-                    color: "#dc2626",
-                    borderRadius: 10,
-                    padding: "7px 10px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    cursor: "pointer",
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    fontFamily: "inherit",
-                    flexShrink: 0,
-                  }}>
-                  <Trash2 size={13} />
-                  Delete
-                </button>
-                <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 2 }} />
-              </div>
+              <ArrowRight size={17} style={{ color: "#C8873A", marginLeft: 2 }} />
             </motion.div>
           ))}
         </div>

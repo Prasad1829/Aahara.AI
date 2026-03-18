@@ -118,7 +118,7 @@ select {
 .hero-section {
   position: relative;
   width: 100%;
-  min-height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -133,11 +133,13 @@ select {
 .hero-left-img,
 .hero-right-img {
   position: absolute;
-  height: auto;
-  object-fit: contain;
+  top: 0;
+  height: 100%;
+  width: 42%;
+  object-fit: cover;
   z-index: 1;
   pointer-events: none;
-  max-width: 45vw;
+  max-width: none;
 }
 
 .hero-left-img {
@@ -161,10 +163,10 @@ select {
   text-align: center;
   padding: 16px;
   font-size: 14px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
+  margin-top: auto;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .app-layout {
@@ -194,9 +196,17 @@ select {
 
 .app-content {
   flex: 1;
-  padding-bottom: 80px;
+  padding-bottom: 32px;
   position: relative;
   z-index: 1;
+}
+
+.app-content-scale,
+.page-content--scaled {
+  width: 100%;
+  margin: 0 auto;
+  transform: scale(0.9);
+  transform-origin: top center;
 }
 
 .dashboard-navbar {

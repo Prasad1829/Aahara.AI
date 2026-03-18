@@ -31,6 +31,7 @@ class Recipe(Base):
     is_veg = Column(Boolean, default=True, nullable=False)
     cooking_time_minutes = Column(Integer, default=30, nullable=False)
     instructions = Column(Text, default="", nullable=False)
+    image_url = Column(String, nullable=True)
 
     ingredients = relationship(
         "Ingredient",

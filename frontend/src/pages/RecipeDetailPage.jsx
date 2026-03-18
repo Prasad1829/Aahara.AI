@@ -38,7 +38,7 @@ export default function RecipeDetailPage() {
   }]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const chatEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
   const hasMountedRef = useRef(false);
   const pendingScrollRef = useRef(0);
 
@@ -63,7 +63,10 @@ export default function RecipeDetailPage() {
     if (!hasMountedRef.current) { hasMountedRef.current = true; return; }
     if (pendingScrollRef.current > 0) {
       pendingScrollRef.current -= 1;
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      chatScrollRef.current?.scrollTo({
+        top: chatScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages]);
 
@@ -221,7 +224,14 @@ export default function RecipeDetailPage() {
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 24px 80px" }}>
 
       <motion.button initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          const returnTo = location.state?.returnTo;
+          if (returnTo?.path) {
+            navigate(returnTo.path, { replace: true, state: { restoreState: returnTo.state } });
+            return;
+          }
+          navigate(-1);
+        }}
         style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem",
           color: "#ffffff", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
           borderRadius: 8, padding: "6px 12px", cursor: "pointer", marginBottom: 20 }}
@@ -246,6 +256,8 @@ export default function RecipeDetailPage() {
                   <RecipeImage
                     name={name}
                     ingredients={recipeIngredients}
+                    imageUrl={recipe.image_url}
+                    imageFallbackUrl={recipe.image_fallback_url}
                     alt={name}
                     style={{ width: 140, height: 140, borderRadius: 16, objectFit: "cover",
                       border: "1px solid rgba(200,135,58,0.2)" }}
@@ -429,7 +441,7 @@ export default function RecipeDetailPage() {
 
                 <div style={{ background: "#f7f2ea", borderRadius: 16,
                   boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  border: "1px solid rgba(200,135,58,0.2)", overflow: "hidden" }}>
+                   border: "1px solid rgba(200,135,58,0.2)", overflow: "hidden" }}>
                   <div style={{ padding: "12px 16px", background: "rgba(200,135,58,0.06)",
                     borderBottom: "1px solid rgba(200,135,58,0.15)",
                     display: "flex", alignItems: "center", gap: 10 }}>
@@ -443,12 +455,12 @@ export default function RecipeDetailPage() {
                       <p style={{ fontSize: "0.68rem", color: "#9ca3af", margin: 0 }}>Ask anything about {name}</p>
                     </div>
                     <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4a9e6b" }} />
+                       <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4a9e6b" }} />
                       <span style={{ fontSize: "0.68rem", color: "#4a9e6b", fontWeight: 600 }}>Online</span>
                     </div>
                   </div>
 
-                  <div style={{ height: 320, overflowY: "auto", padding: "16px 16px 8px",
+                  <div ref={chatScrollRef} style={{ minHeight: 120, maxHeight: 320, overflowY: "auto", padding: "16px 16px 8px",
                     display: "flex", flexDirection: "column", gap: 10, background: "#fdfaf5" }}>
                     {messages.map((msg, i) => (
                       <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
@@ -491,7 +503,6 @@ export default function RecipeDetailPage() {
                         </div>
                       </div>
                     )}
-                    <div ref={chatEndRef} />
                   </div>
 
                   <div style={{ padding: "8px 14px", display: "flex", gap: 7, flexWrap: "wrap",
@@ -499,8 +510,8 @@ export default function RecipeDetailPage() {
                     {["Can I substitute any ingredient?", "How to reduce spice?", "Can I meal prep this?"].map((q) => (
                       <button key={q} onClick={() => setChatInput(q)}
                         style={{ padding: "4px 10px", borderRadius: 20, fontSize: "0.7rem",
-                          background: "rgba(200,135,58,0.08)", color: "#7c4a10",
-                          border: "1px solid rgba(200,135,58,0.25)", cursor: "pointer", fontFamily: "inherit" }}>
+                          background: "rgba(46,139,87,0.08)", color: "#2E8B57",
+                          border: "1px solid rgba(208, 156, 34, 0.25)", cursor: "pointer", fontFamily: "inherit" }}>
                         {q}
                       </button>
                     ))}
@@ -516,11 +527,11 @@ export default function RecipeDetailPage() {
                         background: "#fdfaf5", border: "1.5px solid rgba(200,135,58,0.3)",
                         color: "#2d2d2d", fontSize: "0.85rem", outline: "none", fontFamily: "inherit" }}
                       onFocus={(e) => {
-                        e.target.style.border = "1.5px solid #C8873A";
-                        e.target.style.boxShadow = "0 0 0 3px rgba(200,135,58,0.1)";
+                       e.target.style.border = "1.5px solid #C8873A";
+                       e.target.style.boxShadow = "0 0 0 3px rgba(200,135,58,0.1)";
                       }}
                       onBlur={(e) => {
-                        e.target.style.border = "1.5px solid rgba(200,135,58,0.3)";
+                        e.target.style.border = "1.5px solid rgba(46,139,87,0.3)";
                         e.target.style.boxShadow = "none";
                       }} />
                     <motion.button whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.94 }}

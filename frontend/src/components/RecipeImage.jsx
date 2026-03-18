@@ -1,13 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRecipeImageSources } from "../utils/recipeImage";
 
-export default function RecipeImage({ name = "", ingredients = [], alt, onError, ...props }) {
-  const sources = useMemo(() => getRecipeImageSources(name, ingredients), [ingredients, name]);
+export default function RecipeImage({
+  name = "",
+  ingredients = [],
+  imageUrl,
+  imageFallbackUrl,
+  alt,
+  onError,
+  ...props
+}) {
+  const ingredientKey = Array.isArray(ingredients)
+    ? ingredients.filter(Boolean).join("|")
+    : String(ingredients || "");
+
+  const sources = useMemo(() => {
+    const generatedSources = getRecipeImageSources(name, ingredients);
+    return [...new Set([imageUrl, imageFallbackUrl, ...generatedSources].filter(Boolean))];
+  }, [imageFallbackUrl, imageUrl, ingredientKey, name]);
+
+  const sourceKey = useMemo(() => sources.join("|"), [sources]);
   const [sourceIndex, setSourceIndex] = useState(0);
 
   useEffect(() => {
     setSourceIndex(0);
-  }, [sources]);
+  }, [sourceKey]);
 
   return (
     <img

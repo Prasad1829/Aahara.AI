@@ -30,6 +30,8 @@ def ensure_recipe_columns():
             conn.execute(text("ALTER TABLE recipes ADD COLUMN cooking_time_minutes INTEGER DEFAULT 30 NOT NULL"))
         if "instructions" not in columns:
             conn.execute(text("ALTER TABLE recipes ADD COLUMN instructions TEXT DEFAULT '' NOT NULL"))
+        if "image_url" not in columns:
+            conn.execute(text("ALTER TABLE recipes ADD COLUMN image_url TEXT"))
 
 
 def seed_default_recipes():

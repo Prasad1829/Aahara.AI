@@ -21,57 +21,55 @@ export default function AuthPage() {
   }, [mode]);
 
   useEffect(() => {
-  let tries = 0;
-  const maxTries = 30;
-
-  const interval = setInterval(() => {
-    tries++;
-    if (window.google?.accounts?.id) {
-      clearInterval(interval);
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: async (response) => {
-          setGoogleError("");
-          try {
-            const res = await fetch(`${API}/auth/google`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ id_token: response.credential }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-              setGoogleError(data.detail || "Google login failed.");
-              return;
+    let tries = 0;
+    const maxTries = 30;
+    const interval = setInterval(() => {
+      tries++;
+      if (window.google?.accounts?.id) {
+        clearInterval(interval);
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            setGoogleError("");
+            try {
+              const res = await fetch(`${API}/auth/google`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id_token: response.credential }),
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                setGoogleError(data.detail || "Google login failed.");
+                return;
+              }
+              localStorage.setItem("token", data.access_token);
+              localStorage.setItem("user", JSON.stringify(data.user));
+              navigate("/dashboard");
+            } catch {
+              setGoogleError("Google sign-in failed. Please try again.");
             }
-            localStorage.setItem("token", data.access_token);
-            localStorage.setItem("user", JSON.stringify(data.user));
-            navigate("/dashboard");
-          } catch {
-            setGoogleError("Google sign-in failed. Please try again.");
-          }
-        },
-      });
-    }
-    if (tries >= maxTries) {
-      clearInterval(interval);
-      setGoogleError("Google sign-in unavailable. Check your internet connection.");
-    }
-  }, 300);
-
-  return () => clearInterval(interval);
-}, []);
-
-const handleGoogleClick = () => {
-  if (window.google?.accounts?.id) {
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        setGoogleError("Google sign-in was blocked. Please allow popups and try again.");
+          },
+        });
       }
-    });
-  } else {
-    setGoogleError("Google sign-in is still loading. Please try again in a moment.");
-  }
-};
+      if (tries >= maxTries) {
+        clearInterval(interval);
+        setGoogleError("Google sign-in unavailable. Check your internet connection.");
+      }
+    }, 300);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleGoogleClick = () => {
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setGoogleError("Google sign-in was blocked. Please allow popups and try again.");
+        }
+      });
+    } else {
+      setGoogleError("Google sign-in is still loading. Please try again in a moment.");
+    }
+  };
 
   const handle = async (e) => {
     e.preventDefault();
@@ -109,7 +107,7 @@ const handleGoogleClick = () => {
   return (
     <div className="page-container" style={{ background: "#2E8B57" }}>
       <div
-        className="page-content auth-container"
+        className="page-content page-content--scaled auth-container"
         style={{
           display: "flex",
           alignItems: "center",
@@ -118,13 +116,20 @@ const handleGoogleClick = () => {
         }}
       >
         <div className="auth-content">
+          {/* ✅ CHANGED: image 10% bigger */}
           <img
             src={downVeg}
             alt="Vegetable garnish"
             className="bottom-decor-img"
             loading="lazy"
+            style={{
+              width: "clamp(462px, 44vw, 770px)",
+              transform: "scale(1.10)",
+              transformOrigin: "center center",
+            }}
           />
 
+          {/* ✅ CHANGED: width 378px, borderRadius 17, marginLeft 40px */}
           <div
             className="auth-card"
             style={{
@@ -132,11 +137,14 @@ const handleGoogleClick = () => {
               boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
               position: "relative",
               zIndex: 2,
-              transform: "scale(0.9)",
-              transformOrigin: "center top",
+              width: "378px",
+              maxWidth: "90%",
+              padding: "28px 24px",
+              borderRadius: "17px",
+              marginLeft: "40px",
             }}
           >
-            {/* Title */}
+            {/* Title — original */}
             <div style={{
               fontFamily: "'Playfair Display', serif",
               fontWeight: 900,
@@ -152,7 +160,7 @@ const handleGoogleClick = () => {
               Access your recipe assistant
             </p>
 
-            {/* Single tab */}
+            {/* Single tab — original */}
             <div style={{
               background: "#ede9df",
               borderRadius: 12,
@@ -174,7 +182,7 @@ const handleGoogleClick = () => {
               </button>
             </div>
 
-            {/* Form */}
+            {/* Form — original */}
             <form onSubmit={handle}>
               <input
                 type="email"
@@ -213,7 +221,7 @@ const handleGoogleClick = () => {
               </button>
             </form>
 
-            {/* Toggle link */}
+            {/* Toggle link — original */}
             <p style={{ textAlign: "center", marginBottom: 14 }}>
               {mode === "login" ? (
                 <span
@@ -232,12 +240,12 @@ const handleGoogleClick = () => {
               )}
             </p>
 
-            {/* Divider */}
+            {/* Divider — original */}
             <div style={{ textAlign: "center", color: "#9ca3af", fontSize: "0.82rem", marginBottom: 14 }}>
               or continue with
             </div>
 
-            {/* Google Button */}
+            {/* Google Button — original */}
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
               <button
                 onClick={handleGoogleClick}
@@ -259,7 +267,6 @@ const handleGoogleClick = () => {
               </button>
             </div>
 
-            {/* Google error */}
             {googleError && (
               <p style={{ textAlign: "center", color: "#ef4444", fontSize: "0.82rem", marginTop: 6 }}>
                 {googleError}

@@ -16,7 +16,9 @@ export default function AppLayout({ children, user, bgImage }) {
       <div className="app-foreground">
         <Navbar user={user} />
         <main className="app-content">
-          {children}
+          <div className="app-content-scale">
+            {children}
+          </div>
         </main>
         <footer className="footer">
           © 2026 Aahara.AI · Developed by Vara Prasad · Email: varaprasad42c4@gmail.com · Visakhapatnam

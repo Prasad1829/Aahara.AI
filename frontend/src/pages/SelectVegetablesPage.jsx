@@ -1,56 +1,97 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Loader2, ChefHat, ArrowRight, Clock, Leaf, Flame } from "lucide-react";
-import RecipeImage from "../components/RecipeImage";
+import { useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowLeft, Check, Loader2, ChefHat, ArrowRight } from "lucide-react";
 import RecipeGenerationLoader from "../components/RecipeGenerationLoader";
+import RecipeRecommendationSection from "../components/RecipeRecommendationSection";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-const VEGETABLES = [
-  { id: "tomato",      name: "Tomato",       emoji: "🍅", color: "#e05252" },
-  { id: "potato",      name: "Potato",       emoji: "🥔", color: "#c8873a" },
-  { id: "onion",       name: "Onion",        emoji: "🧅", color: "#a07cc5" },
-  { id: "garlic",      name: "Garlic",       emoji: "🧄", color: "#c8a03a" },
-  { id: "carrot",      name: "Carrot",       emoji: "🥕", color: "#e07a2a" },
-  { id: "spinach",     name: "Spinach",      emoji: "🥬", color: "#4a9e6b" },
-  { id: "broccoli",    name: "Broccoli",     emoji: "🥦", color: "#3d8c5a" },
-  { id: "capsicum",    name: "Capsicum",     emoji: "🫑", color: "#6aaa5a" },
-  { id: "cucumber",    name: "Cucumber",     emoji: "🥒", color: "#5aaa88" },
-  { id: "corn",        name: "Corn",         emoji: "🌽", color: "#c8b03a" },
-  { id: "mushroom",    name: "Mushroom",     emoji: "🍄", color: "#a07050" },
-  { id: "eggplant",    name: "Eggplant",     emoji: "🍆", color: "#8a52c8" },
-  { id: "peas",        name: "Green Peas",   emoji: "🫛", color: "#5aaa3a" },
-  { id: "cauliflower", name: "Cauliflower",  emoji: "🥦", color: "#9aaa8a" },
-  { id: "beans",       name: "Beans",        emoji: "🫘", color: "#a07050" },
-  { id: "lemon",       name: "Lemon",        emoji: "🍋", color: "#c8c03a" },
-  { id: "ginger",      name: "Ginger",       emoji: "🫚", color: "#c8a060" },
-  { id: "chili",       name: "Green Chili",  emoji: "🌶️", color: "#e05252" },
-  { id: "coriander",   name: "Coriander",    emoji: "🌿", color: "#4a9e6b" },
-  { id: "rice",        name: "Rice",         emoji: "🍚", color: "#c8b48a" },
-  { id: "dal",         name: "Dal / Lentils",emoji: "🫘", color: "#c8a03a" },
-  { id: "paneer",      name: "Paneer",       emoji: "🧀", color: "#f0e0a0" },
-  { id: "chicken",     name: "Chicken",      emoji: "🍗", color: "#e07a3a" },
-  { id: "egg",         name: "Egg",          emoji: "🥚", color: "#f0d070" },
-  { id: "fish",        name: "Fish",         emoji: "🐟", color: "#5a8ac8" },
+const INGREDIENT_SECTIONS = [
+  {
+    id: "veg",
+    title: "Veg Ingredients",
+    accent: "#4a9e6b",
+    background: "rgba(74,158,107,0.08)",
+    ingredients: [
+      { id: "onion", name: "Onion", icon: "🧅", color: "#a07cc5" },
+      { id: "tomato", name: "Tomato", icon: "🍅", color: "#e05252" },
+      { id: "potato", name: "Potato", icon: "🥔", color: "#c8873a" },
+      { id: "green-chilli", name: "Green Chilli", icon: "🌶️", color: "#4a9e6b" },
+      { id: "garlic", name: "Garlic", icon: "🧄", color: "#c8a03a" },
+      { id: "ginger", name: "Ginger", icon: "🫚", color: "#c89b5d" },
+      { id: "carrot", name: "Carrot", icon: "🥕", color: "#e07a2a" },
+      { id: "cabbage", name: "Cabbage", icon: "🥬", color: "#6aa56a" },
+      { id: "cauliflower-gobi", name: "Cauliflower (Gobi)", icon: "🥦", color: "#9aaa8a" },
+      { id: "capsicum", name: "Capsicum", icon: "🫑", color: "#5ea85a" },
+      { id: "spinach-palak", name: "Spinach (Palak)", icon: "🥬", color: "#3d8c5a" },
+      { id: "brinjal-eggplant", name: "Brinjal (Eggplant)", icon: "🍆", color: "#8a52c8" },
+      { id: "okra-bhindi", name: "Okra (Bhindi)", icon: "🥒", color: "#4f9c63" },
+      { id: "peas", name: "Peas", icon: "🫛", color: "#5aaa3a" },
+      { id: "paneer", name: "Paneer", icon: "🧀", color: "#f0d98a" },
+      { id: "mushroom", name: "Mushroom", icon: "🍄", color: "#9c6b53" },
+      { id: "coriander-leaves", name: "Coriander Leaves", icon: "🌿", color: "#4a9e6b" },
+      { id: "curry-leaves", name: "Curry Leaves", icon: "🍃", color: "#5c9f4c" },
+      { id: "lemon", name: "Lemon", icon: "🍋", color: "#c8c03a" },
+      { id: "coconut", name: "Coconut", icon: "🥥", color: "#9a6b45" },
+      { id: "beetroot", name: "Beetroot", icon: "🫜", color: "#b23a5f" },
+      { id: "radish", name: "Radish", icon: "🫜", color: "#d96d87" },
+      { id: "bottle-gourd", name: "Bottle Gourd", icon: "🍐", color: "#7fbf7f" },
+      { id: "bitter-gourd", name: "Bitter Gourd", icon: "🥒", color: "#5c9f4c" },
+      { id: "ridge-gourd", name: "Ridge Gourd", icon: "🥒", color: "#7aa86c" },
+      { id: "pumpkin", name: "Pumpkin", icon: "🎃", color: "#d77a2a" },
+      { id: "sweet-corn", name: "Sweet Corn", icon: "🌽", color: "#d4af37" },
+      { id: "green-beans", name: "Green Beans", icon: "🫛", color: "#5b9c52" },
+      { id: "fenugreek-leaves-methi", name: "Fenugreek Leaves (Methi)", icon: "🌿", color: "#5a8f45" },
+      { id: "spring-onion", name: "Spring Onion", icon: "🧅", color: "#6aa56a" },
+    ],
+  },
+  {
+    id: "non-veg",
+    title: "Non-Veg Ingredients",
+    accent: "#c76a3a",
+    background: "rgba(199,106,58,0.08)",
+    ingredients: [
+      { id: "chicken", name: "Chicken", icon: "🐔", color: "#d47b3d" },
+      { id: "eggs", name: "Eggs", icon: "🥚", color: "#d4b15a" },
+      { id: "mutton", name: "Mutton", icon: "🍖", color: "#a55f4a" },
+      { id: "fish", name: "Fish", icon: "🐟", color: "#4d88c7" },
+      { id: "prawns", name: "Prawns", icon: "🦐", color: "#e27d60" },
+      { id: "crab", name: "Crab", icon: "🦀", color: "#d45757" },
+      { id: "duck", name: "Duck", icon: "🦆", color: "#7c6f57" },
+    ],
+  },
 ];
+
+const ALL_INGREDIENTS = INGREDIENT_SECTIONS.flatMap((section) => section.ingredients);
 
 export default function SelectVegetablesPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState([]);
+  const location = useLocation();
+  const restoredState = location.state?.restoreState;
+  const [selected, setSelected] = useState(restoredState?.selected || []);
   const [loading, setLoading] = useState(false);
-  const [recipes, setRecipes] = useState([]);
-  const [error, setError] = useState(null);
-  const selectedNames = VEGETABLES.filter((v) => selected.includes(v.id)).map((v) => v.name);
+  const [recommendedRecipes, setRecommendedRecipes] = useState(restoredState?.recommendedRecipes || []);
+  const [additionalRecipes, setAdditionalRecipes] = useState(restoredState?.additionalRecipes || []);
+  const [error, setError] = useState(restoredState?.error || null);
+
+  const selectedNames = ALL_INGREDIENTS.filter((ingredient) => selected.includes(ingredient.id)).map((ingredient) => ingredient.name);
 
   const toggle = (id) => {
-    setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-    setRecipes([]); setError(null);
+    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+    setRecommendedRecipes([]);
+    setAdditionalRecipes([]);
+    setError(null);
   };
 
   const handleFind = async () => {
     if (selected.length === 0) return;
-    setLoading(true); setError(null); setRecipes([]);
+
+    setLoading(true);
+    setError(null);
+    setRecommendedRecipes([]);
+    setAdditionalRecipes([]);
+
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
@@ -58,77 +99,217 @@ export default function SelectVegetablesPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to fetch recipes");
-      setRecipes(data.recommended_recipes || []);
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to fetch recipes");
+      }
+
+      setRecommendedRecipes(data.recommended_recipes || []);
+      setAdditionalRecipes(data.additional_recipes || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const goToRecipe = (recipe) => {
     navigate(`/recipe/${encodeURIComponent(recipe.name || recipe)}`, {
-      state: { recipe, detectedIngredients: selectedNames },
+      state: {
+        recipe,
+        detectedIngredients: selectedNames,
+        returnTo: {
+          path: "/select-vegetables",
+          state: {
+            selected,
+            recommendedRecipes,
+            additionalRecipes,
+            error,
+          },
+        },
+      },
     });
   };
 
   const CARD = { background: "rgba(250,246,237,0.97)", borderRadius: 20, padding: 20, backdropFilter: "blur(8px)" };
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 24px 80px" }}>
-      <motion.button initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 20px 80px" }}>
+      <motion.button
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
         onClick={() => navigate("/dashboard")}
-        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.82rem",
-          color: "#ffffff", background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
-          borderRadius: 8, padding: "6px 12px", cursor: "pointer", marginBottom: 20 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: "0.82rem",
+          color: "#ffffff",
+          background: "rgba(255,255,255,0.15)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: 8,
+          padding: "6px 12px",
+          cursor: "pointer",
+          marginBottom: 20,
+        }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.25)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}>
+        onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+      >
         <ArrowLeft size={15} /> Back to Dashboard
       </motion.button>
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        style={{ ...CARD, marginBottom: 14, border: "1px solid rgba(74,158,107,0.2)" }}>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{ ...CARD, marginBottom: 14, border: "1px solid rgba(74,158,107,0.2)" }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <ChefHat size={18} color="#4a9e6b" />
           <h2 style={{ fontWeight: 800, color: "#2d2d2d", fontSize: "1rem", margin: 0 }}>
             Select Your Ingredients
           </h2>
           {selected.length > 0 && (
-            <span style={{ marginLeft: "auto", padding: "3px 10px", borderRadius: 20,
-              background: "rgba(74,158,107,0.15)", color: "#2d6a4a", fontSize: "0.75rem", fontWeight: 700 }}>
+            <span
+              style={{
+                marginLeft: "auto",
+                padding: "3px 10px",
+                borderRadius: 20,
+                background: "rgba(74,158,107,0.15)",
+                color: "#2d6a4a",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+              }}
+            >
               {selected.length} selected
             </span>
           )}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(100px, 1fr))", gap: 8 }}>
-          {VEGETABLES.map((veg) => {
-            const isSelected = selected.includes(veg.id);
-            return (
-              <motion.button key={veg.id}
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                onClick={() => toggle(veg.id)}
-                style={{ padding: "10px 6px", borderRadius: 12, border: "none", cursor: "pointer",
-                  fontFamily: "inherit", transition: "all 0.2s", position: "relative",
-                  background: isSelected ? `${veg.color}22` : "rgba(0,0,0,0.03)",
-                  outline: isSelected ? `2px solid ${veg.color}` : "2px solid transparent" }}>
-                {isSelected && (
-                  <div style={{ position: "absolute", top: 5, right: 5, width: 16, height: 16,
-                    borderRadius: "50%", background: veg.color,
-                    display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Check size={10} color="#fff" strokeWidth={3} />
-                  </div>
-                )}
-                <div style={{ fontSize: "1.6rem", marginBottom: 4 }}>{veg.emoji}</div>
-                <p style={{ fontSize: "0.68rem", fontWeight: 600, color: isSelected ? veg.color : "#6b7280",
-                  margin: 0, lineHeight: 1.2 }}>{veg.name}</p>
-              </motion.button>
-            );
-          })}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {INGREDIENT_SECTIONS.map((section) => (
+            <div
+              key={section.id}
+              style={{
+                borderRadius: 16,
+                border: `1px solid ${section.background.replace("0.08", "0.18")}`,
+                background: "rgba(255,255,255,0.55)",
+                padding: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+                <h3 style={{ margin: 0, fontSize: "0.92rem", fontWeight: 800, color: "#2d2d2d" }}>
+                  {section.title}
+                </h3>
+                <span
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    background: section.background,
+                    color: section.accent,
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {section.ingredients.length} items
+                </span>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(8, minmax(0, 1fr))", gap: 8 }}>
+                {section.ingredients.map((ingredient) => {
+                  const isSelected = selected.includes(ingredient.id);
+
+                  return (
+                    <motion.button
+                      key={ingredient.id}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => toggle(ingredient.id)}
+                      style={{
+                        minHeight: 74,
+                        padding: "10px 6px",
+                        borderRadius: 12,
+                        border: "none",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                        transition: "all 0.2s",
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        background: isSelected ? `${ingredient.color}22` : "rgba(0,0,0,0.03)",
+                        outline: isSelected ? `2px solid ${ingredient.color}` : "1px solid rgba(148,163,184,0.12)",
+                        boxShadow: isSelected ? `0 10px 22px ${ingredient.color}20` : "none",
+                      }}
+                    >
+                      {isSelected && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 6,
+                            right: 6,
+                            width: 16,
+                            height: 16,
+                            borderRadius: "50%",
+                            background: ingredient.color,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Check size={11} color="#fff" strokeWidth={3} />
+                        </div>
+                      )}
+
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1.1rem",
+                          background: isSelected ? `${ingredient.color}18` : "rgba(255,255,255,0.8)",
+                        }}
+                      >
+                        {ingredient.icon}
+                      </span>
+
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                          color: isSelected ? ingredient.color : "#4b5563",
+                          lineHeight: 1.15,
+                          textAlign: "center",
+                        }}
+                      >
+                        {ingredient.name}
+                      </span>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </motion.div>
 
       {error && (
-        <div style={{ marginBottom: 12, padding: "10px 14px", borderRadius: 10,
-          background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
-          color: "#dc2626", fontSize: "0.85rem" }}>
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 14px",
+            borderRadius: 10,
+            background: "rgba(239,68,68,0.1)",
+            border: "1px solid rgba(239,68,68,0.25)",
+            color: "#dc2626",
+            fontSize: "0.85rem",
+          }}
+        >
           {error}
         </div>
       )}
@@ -145,85 +326,49 @@ export default function SelectVegetablesPage() {
         />
       )}
 
-      {recipes.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          style={{ ...CARD, border: "1px solid rgba(200,135,58,0.3)", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <ChefHat size={16} color="#C8873A" />
-            <span style={{ fontWeight: 700, color: "#C8873A", fontSize: "0.9rem" }}>
-              Recipes Found ({recipes.length}) — tap to view
-            </span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {recipes.map((recipe, i) => (
-              <motion.div key={i}
-                initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                whileHover={{ x: 4 }} whileTap={{ scale: 0.99 }}
-                onClick={() => goToRecipe(recipe)}
-                style={{ padding: "12px 14px", borderRadius: 12, cursor: "pointer",
-                  background: "rgba(200,135,58,0.06)", border: "1px solid rgba(200,135,58,0.2)",
-                  transition: "all 0.2s" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(200,135,58,0.12)";
-                  e.currentTarget.style.border = "1px solid rgba(200,135,58,0.45)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(200,135,58,0.06)";
-                  e.currentTarget.style.border = "1px solid rgba(200,135,58,0.2)";
-                }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
-                    <RecipeImage
-                      name={recipe.name || recipe}
-                      ingredients={recipe.ingredients || recipe.matched_ingredients || selectedNames}
-                      alt={recipe.name || recipe}
-                      style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
-                      loading="lazy"
-                    />
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ fontWeight: 700, color: "#2d2d2d", fontSize: "0.88rem", marginBottom: 5 }}>
-                        {recipe.name || recipe}
-                      </h3>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        {recipe.is_veg !== undefined && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4,
-                            padding: "2px 8px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 600,
-                            background: recipe.is_veg ? "rgba(74,158,107,0.12)" : "rgba(239,68,68,0.1)",
-                            color: recipe.is_veg ? "#2d6a4a" : "#dc2626",
-                            border: `1px solid ${recipe.is_veg ? "rgba(74,158,107,0.3)" : "rgba(239,68,68,0.25)"}` }}>
-                            {recipe.is_veg ? <Leaf size={10} /> : <Flame size={10} />}
-                            {recipe.is_veg ? "Veg" : "Non-Veg"}
-                          </span>
-                        )}
-                        {recipe.cooking_time_minutes && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 4,
-                            padding: "2px 8px", borderRadius: 20, fontSize: "0.68rem", fontWeight: 600,
-                            background: "rgba(200,135,58,0.1)", color: "#C8873A",
-                            border: "1px solid rgba(200,135,58,0.25)" }}>
-                            <Clock size={10} /> {recipe.cooking_time_minutes} min
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowRight size={15} style={{ color: "#C8873A" }} />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
-      )}
+      <RecipeRecommendationSection
+        title="Recommended Recipes"
+        recipes={recommendedRecipes}
+        ingredientsFallback={selectedNames}
+        onRecipeClick={goToRecipe}
+        cardStyle={CARD}
+      />
+
+      <RecipeRecommendationSection
+        title="You can try these recipes by adding other ingredients"
+        recipes={additionalRecipes}
+        ingredientsFallback={selectedNames}
+        onRecipeClick={goToRecipe}
+        variant="additional"
+        cardStyle={CARD}
+      />
 
       {selected.length > 0 && (
-        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          onClick={handleFind} disabled={loading}
-          whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          style={{ marginTop: 4, width: "100%", padding: "13px", borderRadius: 14,
-            border: "none", cursor: loading ? "not-allowed" : "pointer",
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={handleFind}
+          disabled={loading}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          style={{
+            marginTop: 4,
+            width: "100%",
+            padding: "13px",
+            borderRadius: 14,
+            border: "none",
+            cursor: loading ? "not-allowed" : "pointer",
             background: loading ? "rgba(74,158,107,0.4)" : "#4a9e6b",
-            color: "#fff", fontSize: "0.95rem", fontWeight: 700, fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            color: "#fff",
+            fontSize: "0.95rem",
+            fontWeight: 700,
+            fontFamily: "inherit",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+          }}
+        >
           {loading
             ? <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Finding Recipes...</>
             : <><ChefHat size={16} /> Find Recipes ({selected.length} ingredient{selected.length > 1 ? "s" : ""})</>}

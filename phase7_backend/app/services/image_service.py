@@ -1,97 +1,69 @@
+import os
 from functools import lru_cache
 
+import requests
+from sqlalchemy.orm import Session
+
+
+UNSPLASH_ACCESS_KEY = os.getenv(
+    "UNSPLASH_ACCESS_KEY",
+    "KnYLVwyWLdcaiXdwBqQsX1Z4BrjbtT924pf6O5DM6uY",
+)
+UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos"
+REQUEST_TIMEOUT_SECONDS = 8
 FALLBACK_IMAGE_URL = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80"
-
-STATIC_FOOD_IMAGES = {
-    "generic": FALLBACK_IMAGE_URL,
-    "breakfast": "https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=900&q=80",
-    "curry": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80",
-    "rice": "https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?auto=format&fit=crop&w=900&q=80",
-    "chickenCurry": "https://images.unsplash.com/photo-1527477396000-e27163b481c2?auto=format&fit=crop&w=900&q=80",
-    "fishCurry": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80",
-    "eggCurry": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80",
-    "vegetables": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
-    "paneer": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?auto=format&fit=crop&w=900&q=80",
-    "dessert": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=80",
-    "breadDessert": "https://images.unsplash.com/photo-1514326640560-7d063ef2aed5?auto=format&fit=crop&w=900&q=80",
-}
-
-EXACT_RECIPE_IMAGE_KEYS = {
-    "aloo gobi": "vegetables",
-    "aloo matar": "vegetables",
-    "ariselu": "dessert",
-    "attu": "breakfast",
-    "baingan bharta": "curry",
-    "bandar laddu": "dessert",
-    "bhindi masala": "vegetables",
-    "biryani": "rice",
-    "cabbage poriyal": "vegetables",
-    "capsicum masala": "vegetables",
-    "chana masala": "curry",
-    "chicken curry": "chickenCurry",
-    "dal tadka": "curry",
-    "double ka meetha": "breadDessert",
-    "egg curry": "eggCurry",
-    "fish curry": "fishCurry",
-    "gavvalu": "dessert",
-    "gobi masala": "vegetables",
-    "jeera aloo": "vegetables",
-    "kajjikaya": "dessert",
-    "kakinada khaja": "dessert",
-    "lemon rice": "rice",
-    "methi aloo": "vegetables",
-    "mix veg curry": "vegetables",
-    "moong dal fry": "curry",
-    "mushroom masala": "vegetables",
-    "palak paneer": "paneer",
-    "palathalikalu": "dessert",
-    "paneer butter masala": "paneer",
-    "pesarattu": "breakfast",
-    "poornalu": "dessert",
-    "pootharekulu": "dessert",
-    "qubani ka meetha": "dessert",
-    "rajma masala": "curry",
-    "shahi tukra": "breadDessert",
-    "sheer korma": "dessert",
-    "tomato onion stir fry": "vegetables",
-    "tomato rice": "rice",
-    "veg pulao": "rice",
-}
-
-STATIC_IMAGE_RULES = [
-    (("fish curry",), "fishCurry"),
-    (("chicken curry", "butter chicken", "chilli chicken"), "chickenCurry"),
-    (("egg curry",), "eggCurry"),
-    (("paneer", "tofu"), "paneer"),
-    (("biryani", "pulao", "rice", "khichdi"), "rice"),
-    (("attu", "pesarattu", "dosa", "omelette", "bhurji"), "breakfast"),
-    (("laddu", "khaja", "kajjikaya", "poornalu", "pootharekulu", "gavvalu", "ariselu", "meetha", "dessert", "sweet"), "dessert"),
-    (("tukra", "bread pudding"), "breadDessert"),
-    (("poriyal", "stir fry", "bhindi", "gobi", "aloo", "matar", "mushroom", "cabbage", "capsicum", "veg"), "vegetables"),
-    (("dal", "rajma", "chana", "masala", "curry", "bharta", "kofta", "palak", "gravy"), "curry"),
-]
-
-
-def _normalize_recipe_key(recipe_name: str) -> str:
-    tokens = "".join(char.lower() if char.isalnum() or char.isspace() else " " for char in recipe_name)
-    return " ".join(tokens.split())
-
-
-def _build_image_url(recipe_name: str) -> str:
-    normalized = _normalize_recipe_key(recipe_name)
-    exact_image_key = EXACT_RECIPE_IMAGE_KEYS.get(normalized)
-    if exact_image_key:
-        return STATIC_FOOD_IMAGES[exact_image_key]
-
-    for keywords, image_key in STATIC_IMAGE_RULES:
-        if any(keyword in normalized for keyword in keywords):
-            return STATIC_FOOD_IMAGES[image_key]
-    return FALLBACK_IMAGE_URL
 
 
 @lru_cache(maxsize=1024)
+def get_recipe_image(recipe_name: str) -> str:
+    name = (recipe_name or "").strip()
+    if not name or not UNSPLASH_ACCESS_KEY:
+        return FALLBACK_IMAGE_URL
+
+    try:
+        response = requests.get(
+            UNSPLASH_SEARCH_URL,
+            params={
+                "query": f"{name} food",
+                "per_page": 1,
+                "client_id": UNSPLASH_ACCESS_KEY,
+            },
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        data = response.json()
+        results = data.get("results") or []
+        if results:
+            image_url = ((results[0] or {}).get("urls") or {}).get("regular")
+            if image_url:
+                return image_url
+    except requests.RequestException:
+        pass
+    except ValueError:
+        pass
+
+    return FALLBACK_IMAGE_URL
+
+
+def get_cached_recipe_image_url(recipe, db: Session | None = None) -> str:
+    if recipe is None:
+        return FALLBACK_IMAGE_URL
+
+    cached_image = (getattr(recipe, "image_url", None) or "").strip()
+    if cached_image:
+        return cached_image
+
+    image_url = get_recipe_image(recipe.name)
+    if db is not None and hasattr(recipe, "image_url"):
+        recipe.image_url = image_url
+        db.add(recipe)
+        db.commit()
+        db.refresh(recipe)
+    return image_url
+
+
 def get_recipe_image_url(recipe_name: str | None) -> str:
     name = (recipe_name or "").strip()
     if not name:
         return FALLBACK_IMAGE_URL
-    return _build_image_url(name)
+    return get_recipe_image(name)
