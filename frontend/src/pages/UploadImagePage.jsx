@@ -20,6 +20,7 @@ export default function UploadImagePage() {
   const [dragOver, setDragOver] = useState(false);
   const [showWebcam, setShowWebcam] = useState(false);
   const [stream, setStream] = useState(null);
+  const streamRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
@@ -62,6 +63,7 @@ export default function UploadImagePage() {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       });
+      streamRef.current = mediaStream;
       setStream(mediaStream);
       setShowWebcam(true);
       setTimeout(() => {
@@ -77,11 +79,13 @@ export default function UploadImagePage() {
 
   // ── Close Camera — stream completely stop ──
   const closeWebcam = () => {
+    const activeStream = videoRef.current?.srcObject || streamRef.current || stream;
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.srcObject = null;
     }
-    stopStream(stream);
+    stopStream(activeStream);
+    streamRef.current = null;
     setStream(null);
     setShowWebcam(false);
   };

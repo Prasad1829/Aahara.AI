@@ -33,14 +33,6 @@ function AppShell() {
     }
   }, [showSplash, location.pathname, navigate]);
 
-  useEffect(() => {
-    const handleUnload = () => {
-      sessionStorage.removeItem("ahara_splash_seen");
-    };
-    window.addEventListener("beforeunload", handleUnload);
-    return () => window.removeEventListener("beforeunload", handleUnload);
-  }, []);
-
   return (
     <>
       {showSplash && (
@@ -49,7 +41,9 @@ function AppShell() {
             onDone={() => {
               sessionStorage.setItem("ahara_splash_seen", "1");
               setShowSplash(false);
-              navigate("/landing", { replace: true });
+              if (location.pathname === "/") {
+                navigate("/landing", { replace: true });
+              }
             }}
           />
         </div>
