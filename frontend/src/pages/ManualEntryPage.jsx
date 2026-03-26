@@ -49,6 +49,11 @@ export default function ManualEntryPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/auth", { replace: true });
+        return;
+      }
       if (!res.ok) throw new Error(data.detail || "Failed to fetch recipes");
       setRecommendedRecipes(data.recommended_recipes || []);
       setAdditionalRecipes(data.additional_recipes || []);

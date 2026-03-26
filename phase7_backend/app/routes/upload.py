@@ -233,7 +233,20 @@ async def upload_image(
                     detail="Could not read this image. Please try a different one."
                 )
 
-        # ══ STEP A: ML Model ══
+        # ══ STEP A: Vision API as primary detector ══
+        vision_primary = []
+        try:
+            vision_ings = run_vision_api(file_path)
+            for ing in vision_ings:
+                norm = normalize_ingredient(ing)
+                if norm and norm in INDIAN_INGREDIENT_CLASSES and norm not in vision_primary:
+                    vision_primary.append(norm)
+            if vision_primary:
+                print(f"[Vision API] Primary detected: {vision_primary}")
+        except Exception as e:
+            print(f"[Vision API] Error: {e}")
+
+        # ══ STEP B: ML fallback/support ══
         ml_ingredients = []
         ml_confidence = 0.0
         ml_result = {}
@@ -243,13 +256,13 @@ async def upload_image(
             ml_ingredient = normalize_ingredient(ml_result.get("ingredient", ""))
             if ml_ingredient and ml_ingredient in INDIAN_INGREDIENT_CLASSES and ml_confidence >= ML_CONFIDENCE_MIN:
                 ml_ingredients = [ml_ingredient]
-                print(f"[ML] Detected: {ml_ingredient} ({ml_confidence:.2f})")
+                print(f"[ML] Fallback detected: {ml_ingredient} ({ml_confidence:.2f})")
             else:
                 print(f"[ML] Low confidence or not in classes: {ml_ingredient} ({ml_confidence:.2f})")
         except Exception as e:
             print(f"[ML] Error: {e}")
 
-        # ══ STEP B: OCR ══
+        # ══ STEP C: OCR fallback/support ══
         ocr_ingredients = []
         text_found = None
         try:
@@ -257,16 +270,29 @@ async def upload_image(
             ocr_candidates = ocr_raw if isinstance(ocr_raw, list) else clean_ocr_text(ocr_raw)
             for word in ocr_candidates:
                 norm = normalize_ingredient(word)
-                if norm in INDIAN_INGREDIENT_CLASSES:
+                if norm in INDIAN_INGREDIENT_CLASSES and norm not in ocr_ingredients:
                     ocr_ingredients.append(norm)
             text_found = ", ".join(ocr_ingredients) if ocr_ingredients else None
         except Exception as e:
             print(f"[OCR] Error: {e}")
 
-        # ══ STEP C: Combine ML + OCR ══
+        # ══ STEP D: Combine with Vision priority ══
         combined = []
         source = "none"
-        if ml_ingredients and ocr_ingredients:
+        if vision_primary:
+            combined = list(vision_primary)
+            source = "vision_api"
+
+            fallback_additions = []
+            for ing in ml_ingredients + ocr_ingredients:
+                if ing and ing not in combined and ing not in fallback_additions:
+                    fallback_additions.append(ing)
+
+            if fallback_additions:
+                combined.extend(fallback_additions)
+                source = "vision_api+fallback"
+                print(f"[Fallback] Added new: {fallback_additions}")
+        elif ml_ingredients and ocr_ingredients:
             combined = sorted(set(ml_ingredients + ocr_ingredients))
             source = "ml+ocr"
         elif ml_ingredients:
@@ -275,20 +301,6 @@ async def upload_image(
         elif ocr_ingredients:
             combined = sorted(set(ocr_ingredients))
             source = "ocr"
-
-        # ══ STEP D: Vision API — ALWAYS runs for multiple ingredient detection ══
-        vision_ings = run_vision_api(file_path)
-        if vision_ings:
-            normalized_vision = []
-            for ing in vision_ings:
-                norm = normalize_ingredient(ing)
-                # Only INDIAN_INGREDIENT_CLASSES match chestha — random labels avoid chestam
-                if norm and norm in INDIAN_INGREDIENT_CLASSES and norm not in combined:
-                    normalized_vision.append(norm)
-            if normalized_vision:
-                combined = list(dict.fromkeys(combined + normalized_vision))
-                source = (source + "+vision_api") if source != "none" else "vision_api"
-                print(f"[Vision API] Added new: {normalized_vision}")
 
         # ── Cleanup ──
         try:

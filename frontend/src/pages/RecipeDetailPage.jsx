@@ -57,6 +57,10 @@ export default function RecipeDetailPage() {
     }]);
   }, [name]);
 
+  useEffect(() => {
+    setInstructions(null);
+  }, [prefs.spice_level, prefs.cooking_time]);
+
   useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, []);
 
   useEffect(() => {

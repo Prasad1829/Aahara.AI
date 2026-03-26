@@ -110,11 +110,17 @@ def get_recipe_recommendations(detected_ingredients, preference: str | None = No
             match_score = len(matched) / len(significant_ingredients)
 
             primary_ingredients = significant_ingredients - BASE_INGREDIENTS
-            has_primary_match = not primary_ingredients or bool(detected_set.intersection(primary_ingredients))
+            if not primary_ingredients:
+                primary_ingredients = set(significant_ingredients)
+
+            matched_primary = detected_set.intersection(primary_ingredients)
+            missing_primary = primary_ingredients - detected_set
+            primary_match_ratio = len(matched_primary) / len(primary_ingredients) if primary_ingredients else 0
+            has_primary_match = bool(matched_primary)
 
             payload = _build_recipe_payload(recipe, matched, missing, match_score, db)
 
-            if match_score >= minimum_match_ratio and has_primary_match:
+            if primary_match_ratio >= minimum_match_ratio and has_primary_match:
                 recommended_results.append(payload)
             else:
                 additional_results.append(payload)

@@ -17,33 +17,11 @@ const INGREDIENT_SECTIONS = [
       { id: "onion", name: "Onion", icon: "🧅", color: "#a07cc5" },
       { id: "tomato", name: "Tomato", icon: "🍅", color: "#e05252" },
       { id: "potato", name: "Potato", icon: "🥔", color: "#c8873a" },
-      { id: "green-chilli", name: "Green Chilli", icon: "🌶️", color: "#4a9e6b" },
-      { id: "garlic", name: "Garlic", icon: "🧄", color: "#c8a03a" },
-      { id: "ginger", name: "Ginger", icon: "🫚", color: "#c89b5d" },
       { id: "carrot", name: "Carrot", icon: "🥕", color: "#e07a2a" },
       { id: "cabbage", name: "Cabbage", icon: "🥬", color: "#6aa56a" },
-      { id: "cauliflower-gobi", name: "Cauliflower (Gobi)", icon: "🥦", color: "#9aaa8a" },
-      { id: "capsicum", name: "Capsicum", icon: "🫑", color: "#5ea85a" },
-      { id: "spinach-palak", name: "Spinach (Palak)", icon: "🥬", color: "#3d8c5a" },
-      { id: "brinjal-eggplant", name: "Brinjal (Eggplant)", icon: "🍆", color: "#8a52c8" },
-      { id: "okra-bhindi", name: "Okra (Bhindi)", icon: "🥒", color: "#4f9c63" },
-      { id: "peas", name: "Peas", icon: "🫛", color: "#5aaa3a" },
+      { id: "cauliflower", name: "Cauliflower", icon: "🥦", color: "#9aaa8a" },
+      { id: "spinach", name: "Spinach", icon: "🥬", color: "#3d8c5a" },
       { id: "paneer", name: "Paneer", icon: "🧀", color: "#f0d98a" },
-      { id: "mushroom", name: "Mushroom", icon: "🍄", color: "#9c6b53" },
-      { id: "coriander-leaves", name: "Coriander Leaves", icon: "🌿", color: "#4a9e6b" },
-      { id: "curry-leaves", name: "Curry Leaves", icon: "🍃", color: "#5c9f4c" },
-      { id: "lemon", name: "Lemon", icon: "🍋", color: "#c8c03a" },
-      { id: "coconut", name: "Coconut", icon: "🥥", color: "#9a6b45" },
-      { id: "beetroot", name: "Beetroot", icon: "🫜", color: "#b23a5f" },
-      { id: "radish", name: "Radish", icon: "🫜", color: "#d96d87" },
-      { id: "bottle-gourd", name: "Bottle Gourd", icon: "🍐", color: "#7fbf7f" },
-      { id: "bitter-gourd", name: "Bitter Gourd", icon: "🥒", color: "#5c9f4c" },
-      { id: "ridge-gourd", name: "Ridge Gourd", icon: "🥒", color: "#7aa86c" },
-      { id: "pumpkin", name: "Pumpkin", icon: "🎃", color: "#d77a2a" },
-      { id: "sweet-corn", name: "Sweet Corn", icon: "🌽", color: "#d4af37" },
-      { id: "green-beans", name: "Green Beans", icon: "🫛", color: "#5b9c52" },
-      { id: "fenugreek-leaves-methi", name: "Fenugreek Leaves (Methi)", icon: "🌿", color: "#5a8f45" },
-      { id: "spring-onion", name: "Spring Onion", icon: "🧅", color: "#6aa56a" },
     ],
   },
   {
@@ -53,12 +31,9 @@ const INGREDIENT_SECTIONS = [
     background: "rgba(199,106,58,0.08)",
     ingredients: [
       { id: "chicken", name: "Chicken", icon: "🐔", color: "#d47b3d" },
-      { id: "eggs", name: "Eggs", icon: "🥚", color: "#d4b15a" },
       { id: "mutton", name: "Mutton", icon: "🍖", color: "#a55f4a" },
       { id: "fish", name: "Fish", icon: "🐟", color: "#4d88c7" },
-      { id: "prawns", name: "Prawns", icon: "🦐", color: "#e27d60" },
-      { id: "crab", name: "Crab", icon: "🦀", color: "#d45757" },
-      { id: "duck", name: "Duck", icon: "🦆", color: "#7c6f57" },
+      { id: "eggs", name: "Eggs", icon: "🥚", color: "#d4b15a" },
     ],
   },
 ];
@@ -99,6 +74,12 @@ export default function SelectVegetablesPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const data = await res.json();
+
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/auth", { replace: true });
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(data.detail || "Failed to fetch recipes");
