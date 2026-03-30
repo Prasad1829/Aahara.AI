@@ -1,0 +1,29 @@
+# python
+venv/
+__pycache__/
+*.pyc
+
+# node
+node_modules/
+dist/
+
+# datasets
+dataset/
+dataset_recipe/
+uploads/
+
+# database
+*.db
+
+# images
+*.jpg
+*.png
+
+# archives
+*.zip
+reference/
+# env
+.env
+test/
+check_*.py
+download_images.py
