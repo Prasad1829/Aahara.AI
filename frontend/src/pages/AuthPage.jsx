@@ -84,7 +84,7 @@ export default function AuthPage() {
         const data = await res.json();
         if (!res.ok) { alert(data.detail || "Invalid email or password"); return; }
         localStorage.setItem("token", data.access_token);
-        localStorage.setItem("user", JSON.stringify({ email }));
+        localStorage.setItem("user", JSON.stringify(data.user || { email }));
         navigate("/dashboard");
       } else {
         const res = await fetch(`${API}/auth/signup`, {

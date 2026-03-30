@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
 
@@ -32,6 +33,26 @@ def ensure_recipe_columns():
             conn.execute(text("ALTER TABLE recipes ADD COLUMN instructions TEXT DEFAULT '' NOT NULL"))
         if "image_url" not in columns:
             conn.execute(text("ALTER TABLE recipes ADD COLUMN image_url TEXT"))
+
+
+def ensure_user_columns():
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    if "users" not in table_names:
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    with engine.begin() as conn:
+        if "full_name" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR"))
+        if "phone_number" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN phone_number VARCHAR"))
+        if "avatar_url" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+        if "auth_provider" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN auth_provider VARCHAR"))
+        if "provider_subject" not in columns:
+            conn.execute(text("ALTER TABLE users ADD COLUMN provider_subject VARCHAR"))
 
 
 def seed_default_recipes():
@@ -91,8 +112,14 @@ def health_check():
 @app.on_event("startup")
 def startup_event():
     ensure_recipe_columns()
+    ensure_user_columns()
     seed_default_recipes()
     import_regional_recipes()
+
+
+uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "uploads"))
+os.makedirs(uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 
 app.include_router(auth.router)

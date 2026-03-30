@@ -18,6 +18,11 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    full_name = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
+    avatar_url = Column(String, nullable=True)
+    auth_provider = Column(String, nullable=True)
+    provider_subject = Column(String, nullable=True)
 
     wishlists = relationship("Wishlist", back_populates="user", cascade="all, delete-orphan")
     history_items = relationship("RecipeHistory", back_populates="user", cascade="all, delete-orphan")

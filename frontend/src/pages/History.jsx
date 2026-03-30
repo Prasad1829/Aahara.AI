@@ -80,6 +80,24 @@ export default function History() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={() => navigate("/dashboard")}
+          style={{
+            border: "1px solid rgba(120,113,108,0.2)",
+            borderRadius: 14,
+            padding: "10px 16px",
+            background: "#fff",
+            color: "#292524",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          Back
+        </button>
+      </div>
+
       <div style={CARD}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
           <div>
