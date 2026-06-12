@@ -1,2 +1,7 @@
+[project]
+name = "aahara-ai"
+version = "0.1.0"
+dependencies = []
+
 [tool.vercel]
 entrypoint = "phase7_backend.main:app"
