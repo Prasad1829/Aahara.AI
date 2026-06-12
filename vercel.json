@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "phase7_backend/main.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "phase7_backend/main.py"
+    }
+  ]
+}
