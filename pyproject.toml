@@ -1,0 +1,2 @@
+[tool.vercel]
+entrypoint = "phase7_backend.main:app"
