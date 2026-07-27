@@ -8,7 +8,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 
-from app import models
+from phase7_backend.app import models
 from app.config import CORS_ORIGINS
 from app.database import SessionLocal, engine
 from app.models import Ingredient, Recipe
