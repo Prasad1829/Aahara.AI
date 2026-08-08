@@ -1,14 +1,8 @@
 {
-  "builds": [
-    {
-      "src": "phase7_backend/main.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "phase7_backend/main.py"
-    }
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
