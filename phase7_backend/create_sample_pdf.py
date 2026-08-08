@@ -105,7 +105,7 @@ def create_sample_recipe_pdf():
         pdf.cell(0, 8, tip, new_x="LMARGIN", new_y="NEXT")
 
     # Save PDF
-    output_path = "P:/INFOSYS PROJECT/phase7_backend/sample_recipe.pdf"
+    output_path = "sample_recipe.pdf"
     pdf.output(output_path)
     print(f"✅ Sample recipe PDF created: {output_path}")
     print("📄 Contains these AHARA AI ingredients:")
