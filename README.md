@@ -1,4 +1,4 @@
-﻿# Ingredient-Based Intelligent Recipe Identification System
+# Ingredient-Based Intelligent Recipe Identification System
 
 A comprehensive full-stack pipeline combining computer vision, OCR, and machine learning to identify raw ingredients from photos and extract ingredient text from product packets and recipe documents. This system integrates image preprocessing, CNN-based classification, robust OCR (Tesseract), an intelligent ML+OCR router, a FastAPI backend, and a ReactJS frontend.
 
@@ -105,7 +105,7 @@ Utility Scripts:
   └── download_images.py          # Batch download ingredients via web
 
 TRAINING_GUIDE.md                # Detailed model training instructions
-requirements.txt                 # Project-level dependencies (if any)
+requirements.txt                 # References phase7_backend/requirements.txt
 README.md                        # This file
 ```
 
