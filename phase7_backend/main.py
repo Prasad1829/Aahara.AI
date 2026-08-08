@@ -104,6 +104,11 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "message": "Aahara.AI API is running", "docs": "/docs"}
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
