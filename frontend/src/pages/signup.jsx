@@ -51,6 +51,8 @@ function Signup() {
 
         <div className="mt-6 space-y-4">
           <input
+            type="email"
+            autoComplete="username"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -59,6 +61,7 @@ function Signup() {
 
           <input
             type="password"
+            autoComplete="new-password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

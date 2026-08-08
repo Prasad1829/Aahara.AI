@@ -29,6 +29,7 @@ export default function AuthPage() {
         clearInterval(interval);
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
+          use_fedcm_for_prompt: true,
           callback: async (response) => {
             setGoogleError("");
             try {
@@ -187,6 +188,7 @@ export default function AuthPage() {
               <input
                 type="email"
                 required
+                autoComplete="username"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -195,6 +197,7 @@ export default function AuthPage() {
               <input
                 type="password"
                 required
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
                 placeholder={mode === "login" ? "Enter your password" : "Create a password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
