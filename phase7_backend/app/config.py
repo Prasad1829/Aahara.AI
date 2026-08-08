@@ -8,8 +8,15 @@ def get_env(name: str, default: str) -> str:
     return value.strip()
 
 
-DATABASE_URL = get_env("DATABASE_URL", "sqlite:///./recipe.db")
-SECRET_KEY = get_env("SECRET_KEY", "dev_only_change_me")
+MONGODB_URL = get_env(
+    "MONGODB_URL",
+    get_env(
+        "DATABASE_URL",
+        "mongodb+srv://prasad10052004_db_user:cQB5GIq5x4ASOm3J@cluster0.ejqcczp.mongodb.net/aahara_ai?appName=Cluster0",
+    ),
+)
+DATABASE_URL = MONGODB_URL
+SECRET_KEY = get_env("SECRET_KEY", "85b3bc224fb0ecf8c92a95c9a419be226e6328329de400dbb4dc80bf61b474bb")
 ALGORITHM = get_env("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(get_env("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 TESSERACT_CMD = get_env("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")

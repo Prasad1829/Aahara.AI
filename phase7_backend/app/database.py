@@ -1,22 +1,12 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from app.mongodb import MongoSession, get_mongo_db
 
-from app.config import DATABASE_URL
 
-is_sqlite = DATABASE_URL.startswith("sqlite")
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if is_sqlite else {},
-)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+def SessionLocal():
+    return MongoSession()
 
 
 def get_db():
-    db = SessionLocal()
+    db = MongoSession()
     try:
         yield db
     finally:
