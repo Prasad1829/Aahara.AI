@@ -5,7 +5,7 @@ import { ArrowLeft, X, ImageIcon, Loader2, ChefHat, Plus, ArrowRight, Camera } f
 import RecipeGenerationLoader from "../components/RecipeGenerationLoader";
 import RecipeRecommendationSection from "../components/RecipeRecommendationSection";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://aahara-ai-4.onrender.com";
 
 export default function UploadImagePage() {
   const navigate = useNavigate();

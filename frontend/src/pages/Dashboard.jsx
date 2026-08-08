@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Upload, Salad, PenLine } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://aahara-ai-4.onrender.com";
 export default function Dashboard() {
   const [, setUser] = useState(null);
   const navigate = useNavigate();

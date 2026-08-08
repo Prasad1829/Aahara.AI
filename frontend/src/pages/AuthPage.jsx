@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import downVeg from "../assets/down_veg.png";
 import googleIcon from "../assets/google.svg";
 
-const API = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_BASE_URL || "https://aahara-ai-4.onrender.com";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function AuthPage() {

@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Loader2, ChefHat, ArrowRight } from "lucide-react";
 import RecipeGenerationLoader from "../components/RecipeGenerationLoader";
 import RecipeRecommendationSection from "../components/RecipeRecommendationSection";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://aahara-ai-4.onrender.com";
 
 const INGREDIENT_SECTIONS = [
   {
