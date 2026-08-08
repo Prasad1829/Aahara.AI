@@ -8,11 +8,19 @@ _client = None
 _mongo_db = None
 
 
+import certifi
+
+
 def get_mongo_db():
     global _client, _mongo_db
     if _mongo_db is None:
-        _client = MongoClient(MONGODB_URL)
-        _mongo_db = _client.get_database()
+        try:
+            _client = MongoClient(MONGODB_URL, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=10000)
+            _mongo_db = _client.get_database()
+            _client.admin.command("ping")
+        except Exception:
+            _client = MongoClient(MONGODB_URL, tlsAllowInvalidCertificates=True, serverSelectionTimeoutMS=10000)
+            _mongo_db = _client.get_database()
     return _mongo_db
 
 
