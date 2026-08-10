@@ -34,6 +34,9 @@ class Field:
     def __ne__(self, other):
         return {self.name: {"$ne": other}}
 
+    def is_(self, other):
+        return {self.name: other}
+
     def desc(self):
         return (self.name, -1)
 

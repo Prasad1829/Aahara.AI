@@ -83,9 +83,9 @@ def get_recipe_recommendations(detected_ingredients, preference: str | None = No
 
         recipes_query = db.query(Recipe)
         if preference == "veg":
-            recipes_query = recipes_query.filter(Recipe.is_veg.is_(True))
+            recipes_query = recipes_query.filter(Recipe.is_veg == True)
         elif preference == "nonveg":
-            recipes_query = recipes_query.filter(Recipe.is_veg.is_(False))
+            recipes_query = recipes_query.filter(Recipe.is_veg == False)
         recipes = recipes_query.all()
 
         minimum_match_ratio = 0.6
