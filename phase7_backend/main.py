@@ -54,7 +54,13 @@ def root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "database": "mongodb"}
+    try:
+        from app.mongodb import get_mongo_db
+        db = get_mongo_db()
+        db.client.admin.command("ping")
+        return {"status": "ok", "database": "mongodb", "connection": "healthy"}
+    except Exception as e:
+        return {"status": "error", "database": "mongodb", "connection": str(e)}
 
 
 @app.on_event("startup")
