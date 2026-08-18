@@ -52,22 +52,33 @@ def google_login(payload: GoogleTokenRequest, db: Session = Depends(get_db)):
 
 
 # -----------------------
-# Signup
-# -----------------------
+import traceback
+
+
 @router.post("/signup")
 def signup(user: UserSignup, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.email == user.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    hashed_pw = hash_password(user.password)
-    new_user = User(email=user.email, hashed_password=hashed_pw)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"message": "User created successfully"}
+    try:
+        existing_user = db.query(User).filter(User.email == user.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        hashed_pw = hash_password(user.password)
+        new_user = User(email=user.email, hashed_password=hashed_pw)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"message": "User created successfully"}
+    except Exception as e:
+        import logging
+
+        logging.exception("Signup error:")
+        return {
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "traceback": traceback.format_exc(),
+        }
 
 
 # -----------------------
