@@ -83,17 +83,7 @@ def health_check():
         return {"status": "error", "database": "mongodb", "connection": str(e)}
 
 
-@app.get("/test-db-users")
-def test_db_users():
-    try:
-        from app.database import SessionLocal
-        from app.models import User
-        db = SessionLocal()
-        users = db.query(User).all()
-        return {"users_count": len(users), "users": [u.email for u in users]}
-    except Exception as e:
-        import traceback
-        return {"error": str(e), "traceback": traceback.format_exc()}
+
 
 
 @app.on_event("startup")
