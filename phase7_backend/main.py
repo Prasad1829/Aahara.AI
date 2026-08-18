@@ -47,6 +47,22 @@ app.add_middleware(
 )
 
 
+from fastapi.responses import JSONResponse
+import traceback
+
+
+@app.exception_handler(Exception)
+def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+            "traceback": traceback.format_exc(),
+        },
+    )
+
+
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Aahara.AI API is running (MongoDB Atlas)", "docs": "/docs"}
