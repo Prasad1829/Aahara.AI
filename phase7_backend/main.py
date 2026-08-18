@@ -53,6 +53,10 @@ import traceback
 
 @app.exception_handler(Exception)
 def global_exception_handler(request, exc):
+    from fastapi import HTTPException
+
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     return JSONResponse(
         status_code=500,
         content={

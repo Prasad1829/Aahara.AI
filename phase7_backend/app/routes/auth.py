@@ -70,15 +70,16 @@ def signup(user: UserSignup, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
         return {"message": "User created successfully"}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         import logging
 
         logging.exception("Signup error:")
-        return {
-            "error_type": type(e).__name__,
-            "error_message": str(e),
-            "traceback": traceback.format_exc(),
-        }
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal Server Error: {str(e)}"
+        )
 
 
 # -----------------------
