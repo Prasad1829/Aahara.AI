@@ -68,6 +68,34 @@ def _generate_with_groq(api_key: str, prompt: str) -> str:
     return text
 
 
+def _generate_with_gemini(api_key: str, prompt: str) -> str:
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    data = _post_json(
+        url,
+        {"Content-Type": "application/json"},
+        {
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt}
+                    ]
+                }
+            ]
+        },
+    )
+    candidates = data.get("candidates") or []
+    if not candidates:
+        raise RuntimeError(FRIENDLY_ERROR_MESSAGE)
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts") or []
+    if not parts:
+        raise RuntimeError(FRIENDLY_ERROR_MESSAGE)
+    text = (parts[0].get("text") or "").strip()
+    if not text:
+        raise RuntimeError(FRIENDLY_ERROR_MESSAGE)
+    return text
+
+
 def generate_text(prompt: str) -> str:
     load_dotenv()
 
@@ -78,5 +106,9 @@ def generate_text(prompt: str) -> str:
     groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
     if groq_api_key:
         return _generate_with_groq(groq_api_key, prompt)
+
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if gemini_api_key:
+        return _generate_with_gemini(gemini_api_key, prompt)
 
     raise RuntimeError(FRIENDLY_ERROR_MESSAGE)
